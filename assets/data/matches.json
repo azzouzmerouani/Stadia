@@ -1,0 +1,68 @@
+{
+  "teams": [
+    { "id": "MCO", "name": "MC Oran", "short": "MCO", "city": "Oran", "primary": "#D71920", "secondary": "#FFFFFF" },
+    { "id": "MCA", "name": "MC Alger", "short": "MCA", "city": "Algiers", "primary": "#C8102E", "secondary": "#00843D" },
+    { "id": "JSK", "name": "JS Kabylie", "short": "JSK", "city": "Tizi Ouzou", "primary": "#FFD100", "secondary": "#007A33" },
+    { "id": "ESS", "name": "ES Sétif", "short": "ESS", "city": "Sétif", "primary": "#111111", "secondary": "#FFFFFF" },
+    { "id": "USMA", "name": "USM Alger", "short": "USMA", "city": "Algiers", "primary": "#D50032", "secondary": "#111111" },
+    { "id": "CRB", "name": "CR Belouizdad", "short": "CRB", "city": "Algiers", "primary": "#E30613", "secondary": "#FFFFFF" },
+    { "id": "CSC", "name": "CS Constantine", "short": "CSC", "city": "Constantine", "primary": "#00843D", "secondary": "#111111" }
+  ],
+  "matches": [
+    {
+      "id": "mco-mca-2026-11-28",
+      "stadium": "miloud-hadefi",
+      "home": "MCO",
+      "away": "MCA",
+      "kickoff": "2026-11-28T17:45:00",
+      "competition": "Ligue 1",
+      "round": "Matchday 12",
+      "priceMultiplier": 1.5,
+      "demand": 0.86
+    },
+    {
+      "id": "mco-jsk-2026-12-05",
+      "stadium": "miloud-hadefi",
+      "home": "MCO",
+      "away": "JSK",
+      "kickoff": "2026-12-05T17:00:00",
+      "competition": "Ligue 1",
+      "round": "Matchday 13",
+      "priceMultiplier": 1.25,
+      "demand": 0.7
+    },
+    {
+      "id": "mco-ess-2026-12-12",
+      "stadium": "miloud-hadefi",
+      "home": "MCO",
+      "away": "ESS",
+      "kickoff": "2026-12-12T16:00:00",
+      "competition": "Ligue 1",
+      "round": "Matchday 14",
+      "priceMultiplier": 1.0,
+      "demand": 0.52
+    },
+    {
+      "id": "mco-usma-2026-12-19",
+      "stadium": "miloud-hadefi",
+      "home": "MCO",
+      "away": "USMA",
+      "kickoff": "2026-12-19T17:45:00",
+      "competition": "Ligue 1",
+      "round": "Matchday 15",
+      "priceMultiplier": 1.25,
+      "demand": 0.64
+    },
+    {
+      "id": "mco-csc-2026-12-26",
+      "stadium": "miloud-hadefi",
+      "home": "MCO",
+      "away": "CSC",
+      "kickoff": "2026-12-26T15:00:00",
+      "competition": "Algerian Cup",
+      "round": "Round of 16",
+      "priceMultiplier": 1.0,
+      "demand": 0.41
+    }
+  ]
+}

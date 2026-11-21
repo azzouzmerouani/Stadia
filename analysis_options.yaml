@@ -1,0 +1,19 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: false
+    strict-raw-types: true
+  exclude:
+    - build/**
+    - tools/web/node_modules/**
+
+linter:
+  rules:
+    - prefer_final_locals
+    - prefer_const_constructors
+    - prefer_single_quotes
+    - unawaited_futures
+    - avoid_redundant_argument_values
+    - directives_ordering
+    - sort_child_properties_last

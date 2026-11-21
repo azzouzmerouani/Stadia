@@ -1,0 +1,60 @@
+{
+  "id": "miloud-hadefi",
+  "name": "Stade Miloud Hadefi",
+  "city": "Oran",
+  "location": { "lat": 35.72853, "lng": -0.54950 },
+  "gatesOpenMinutesBefore": 120,
+  "vipUpgradePrice": 3000,
+  "layout": {
+    "seatsPerRow": 30,
+    "seatWidth": 0.5,
+    "rowDepth": 0.8,
+    "blockWidth": 16.0,
+    "tiers": [
+      { "tier": 1, "rows": 24, "rise": 0.42 },
+      { "tier": 2, "rows": 24, "rise": 0.6 }
+    ]
+  },
+  "stands": [
+    {
+      "id": "N",
+      "name": "North Stand",
+      "nickname": "Virage Nord",
+      "blocksPerTier": 6,
+      "gate": "A",
+      "prices": { "1": 600, "2": 400 }
+    },
+    {
+      "id": "E",
+      "name": "East Stand",
+      "nickname": "Tribune Est",
+      "blocksPerTier": 8,
+      "gate": "B",
+      "prices": { "1": 1200, "2": 800 }
+    },
+    {
+      "id": "S",
+      "name": "South Stand",
+      "nickname": "Virage Sud",
+      "blocksPerTier": 6,
+      "gate": "C",
+      "prices": { "1": 600, "2": 400 }
+    },
+    {
+      "id": "W",
+      "name": "West Stand",
+      "nickname": "Tribune Officielle",
+      "blocksPerTier": 8,
+      "gate": "D",
+      "vip": true,
+      "prices": { "1": 2000, "2": 1500 }
+    }
+  ],
+  "gates": [
+    { "id": "A", "name": "Gate A", "north": 165, "east": 0 },
+    { "id": "B", "name": "Gate B", "north": 0, "east": 140 },
+    { "id": "C", "name": "Gate C", "north": -165, "east": 0 },
+    { "id": "D", "name": "Gate D", "north": 60, "east": -140 },
+    { "id": "E", "name": "Gate E · VIP", "north": -60, "east": -140 }
+  ]
+}
