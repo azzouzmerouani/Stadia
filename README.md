@@ -19,9 +19,9 @@ mocked behind repository and payment interfaces (see
 |---|---|---|---|
 | ![Intro](docs/screenshots/1-intro.jpg) | ![Map](docs/screenshots/2-map.jpg) | ![Stand](docs/screenshots/3-stand.jpg) | ![Block](docs/screenshots/4-block.jpg) |
 
-| Seat sheet | Checkout | Ticket |
+| View from the seat | Checkout | Ticket |
 |---|---|---|
-| ![Seat sheet](docs/screenshots/5-seat-sheet.jpg) | ![Checkout](docs/screenshots/6-checkout.jpg) | ![Ticket](docs/screenshots/7-ticket.jpg) |
+| ![View from the seat](docs/screenshots/5-seat-view.jpg) | ![Checkout](docs/screenshots/6-checkout.jpg) | ![Ticket](docs/screenshots/7-ticket.jpg) |
 
 ## The flow
 
