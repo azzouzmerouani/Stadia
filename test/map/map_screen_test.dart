@@ -6,6 +6,7 @@ import 'package:stadia/data/models/stadium.dart';
 import 'package:stadia/data/providers.dart';
 import 'package:stadia/data/repositories/local_stadium_repository.dart';
 import 'package:stadia/features/map/map_screen.dart';
+import 'package:stadia/l10n/l10n.dart';
 import 'package:stadia/ui/theme.dart';
 
 void main() {
@@ -28,7 +29,13 @@ void main() {
           stadiumProvider.overrideWithValue(AsyncData(stadium)),
           upcomingMatchesProvider.overrideWithValue(AsyncData(matches)),
         ],
-        child: MaterialApp(theme: buildStadiaTheme(), home: const MapScreen()),
+        child: MaterialApp(
+          theme: buildStadiaTheme(),
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: const MapScreen(),
+        ),
       ),
     );
     await tester.pump(const Duration(seconds: 2));

@@ -8,9 +8,13 @@ import 'payment/payment_service.dart';
 import 'repositories/local_stadium_repository.dart';
 import 'repositories/stadium_repository.dart';
 
+/// Language the app is shown in and content is fetched in. The app is
+/// Arabic; English stays as a full translation (used by most tests).
+final languageProvider = Provider<String>((ref) => 'ar');
+
 /// Swap this override for a Supabase implementation later.
 final stadiumRepositoryProvider = Provider<StadiumRepository>(
-  (ref) => LocalStadiumRepository(),
+  (ref) => LocalStadiumRepository(languageCode: ref.watch(languageProvider)),
 );
 
 /// Swap for `ChargilyPaymentService` once the backend exists.
@@ -49,5 +53,6 @@ class TicketWallet extends Notifier<List<Ticket>> {
   }
 }
 
-final ticketWalletProvider =
-    NotifierProvider<TicketWallet, List<Ticket>>(TicketWallet.new);
+final ticketWalletProvider = NotifierProvider<TicketWallet, List<Ticket>>(
+  TicketWallet.new,
+);

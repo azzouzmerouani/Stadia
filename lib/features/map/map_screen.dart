@@ -6,14 +6,15 @@ import 'package:latlong2/latlong.dart';
 
 import '../../data/models/stadium.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../ui/format.dart';
 import '../../ui/stadia_loader.dart';
 import '../../ui/tokens.dart';
 import '../matches/upcoming_matches_card.dart';
 import 'widgets/gate_markers.dart';
 import 'widgets/map_header.dart';
-import 'widgets/navy_tiles.dart';
 import 'widgets/osm_attribution.dart';
+import 'widgets/purple_tiles.dart';
 import 'widgets/stadium_marker.dart';
 
 class MapScreen extends ConsumerWidget {
@@ -23,7 +24,7 @@ class MapScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stadium = ref.watch(stadiumProvider);
     return Scaffold(
-      backgroundColor: StadiaColors.navy900,
+      backgroundColor: StadiaColors.page,
       body: switch (stadium) {
         AsyncData(:final value) => _StadiumMap(stadium: value),
         AsyncError(:final error) => Center(
@@ -117,7 +118,7 @@ class _StadiumMapState extends State<_StadiumMap>
               initialCameraFit: _focusFit(context),
               minZoom: 5,
               maxZoom: 18.5,
-              backgroundColor: StadiaColors.navy900,
+              backgroundColor: StadiaColors.page,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
@@ -126,7 +127,7 @@ class _StadiumMapState extends State<_StadiumMap>
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'dz.stadia.app',
-                tileBuilder: navyTileBuilder,
+                tileBuilder: purpleTileBuilder,
               ),
               GateMarkersLayer(gates: s.gates),
               MarkerLayer(
@@ -138,7 +139,8 @@ class _StadiumMapState extends State<_StadiumMap>
                     alignment: Alignment.topCenter,
                     child: StadiumMarker(
                       name: s.name,
-                      caption: '${formatCount(s.capacity)} seats · ${s.city}',
+                      caption:
+                          '${context.l10n.seatCount(s.capacity, StadiaFormat.of(context).count(s.capacity))} · ${s.city}',
                       onTap: _recenter,
                     ),
                   ),
@@ -168,7 +170,10 @@ class _StadiumMapState extends State<_StadiumMap>
             mainAxisSize: MainAxisSize.min,
             children: [
               const Padding(
-                padding: EdgeInsets.only(right: StadiaSpace.gutter, bottom: 8),
+                padding: EdgeInsetsDirectional.only(
+                  end: StadiaSpace.gutter,
+                  bottom: 8,
+                ),
                 child: OsmAttribution(),
               ),
               const UpcomingMatchesCard()

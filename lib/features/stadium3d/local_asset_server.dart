@@ -37,9 +37,9 @@ class LocalAssetServer {
   Uri get origin => Uri(scheme: 'http', host: '127.0.0.1', port: port);
 
   Uri page(SceneMode mode, {required bool debug}) => origin.replace(
-        path: '/index.html',
-        queryParameters: {'mode': mode.name, if (debug) 'debug': '1'},
-      );
+    path: '/index.html',
+    queryParameters: {'mode': mode.name, if (debug) 'debug': '1'},
+  );
 
   /// Asset key for a request path, or null when it is outside the viewer.
   @visibleForTesting
@@ -65,6 +65,7 @@ class LocalAssetServer {
     'json': 'application/json',
     'png': 'image/png',
     'jpg': 'image/jpeg',
+    'ttf': 'font/ttf',
   };
 
   Future<void> _handle(HttpRequest req) async {
@@ -93,13 +94,17 @@ class LocalAssetServer {
       }
       final ext = key.substring(key.lastIndexOf('.') + 1);
       res.headers
-        ..set(HttpHeaders.contentTypeHeader,
-            _types[ext] ?? 'application/octet-stream')
+        ..set(
+          HttpHeaders.contentTypeHeader,
+          _types[ext] ?? 'application/octet-stream',
+        )
         ..set(HttpHeaders.cacheControlHeader, 'no-cache')
         ..set('x-content-type-options', 'nosniff');
       res.contentLength = data.lengthInBytes;
       if (req.method == 'GET') {
-        res.add(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+        res.add(
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        );
       }
     } finally {
       await res.close();

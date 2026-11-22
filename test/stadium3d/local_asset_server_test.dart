@@ -25,12 +25,18 @@ void main() {
   group('assetKeyFor', () {
     test('maps viewer paths into the two asset folders', () {
       expect(LocalAssetServer.assetKeyFor('/'), 'assets/web/index.html');
-      expect(LocalAssetServer.assetKeyFor('/stadium.js'), 'assets/web/stadium.js');
+      expect(
+        LocalAssetServer.assetKeyFor('/stadium.js'),
+        'assets/web/stadium.js',
+      );
       expect(
         LocalAssetServer.assetKeyFor('/draco/draco_decoder.wasm'),
         'assets/web/draco/draco_decoder.wasm',
       );
-      expect(LocalAssetServer.assetKeyFor('/3d/stadium.glb'), 'assets/3d/stadium.glb');
+      expect(
+        LocalAssetServer.assetKeyFor('/3d/stadium.glb'),
+        'assets/3d/stadium.glb',
+      );
     });
 
     test('refuses anything that could leave those folders', () {
@@ -51,6 +57,7 @@ void main() {
         bundle: _MapBundle({
           'assets/web/index.html': '<!doctype html><title>Stadia 3D</title>',
           'assets/3d/stadium.glb': 'glTF',
+          'assets/web/fonts/Cairo-Bold.ttf': 'ttf',
         }),
       );
       client = HttpClient();
@@ -66,7 +73,10 @@ void main() {
       String method = 'GET',
       String? host,
     }) async {
-      final req = await client.openUrl(method, server.origin.replace(path: path));
+      final req = await client.openUrl(
+        method,
+        server.origin.replace(path: path),
+      );
       if (host != null) req.headers.host = host;
       return req.close();
     }
@@ -90,28 +100,38 @@ void main() {
       await res.drain<void>();
     });
 
-    test('404 for missing files, 405 for writes, 403 for foreign hosts', () async {
-      final missing = await request('/nope.js');
-      expect(missing.statusCode, 404);
-      await missing.drain<void>();
-
-      final post = await request('/index.html', method: 'POST');
-      expect(post.statusCode, 405);
-      await post.drain<void>();
-
-      final foreign = await request('/index.html', host: 'evil.example');
-      expect(foreign.statusCode, 403);
-      await foreign.drain<void>();
+    test('serves the Cairo label font as font/ttf', () async {
+      final res = await request('/fonts/Cairo-Bold.ttf');
+      expect(res.statusCode, 200);
+      expect(res.headers.contentType?.mimeType, 'font/ttf');
+      await res.drain<void>();
     });
+
+    test(
+      '404 for missing files, 405 for writes, 403 for foreign hosts',
+      () async {
+        final missing = await request('/nope.js');
+        expect(missing.statusCode, 404);
+        await missing.drain<void>();
+
+        final post = await request('/index.html', method: 'POST');
+        expect(post.statusCode, 405);
+        await post.drain<void>();
+
+        final foreign = await request('/index.html', host: 'evil.example');
+        expect(foreign.statusCode, 403);
+        await foreign.drain<void>();
+      },
+    );
 
     test('page URL carries the scene mode', () {
       final uri = server.page(SceneMode.intro, debug: false);
       expect(uri.path, '/index.html');
       expect(uri.queryParameters, {'mode': 'intro'});
-      expect(
-        server.page(SceneMode.picker, debug: true).queryParameters,
-        {'mode': 'picker', 'debug': '1'},
-      );
+      expect(server.page(SceneMode.picker, debug: true).queryParameters, {
+        'mode': 'picker',
+        'debug': '1',
+      });
     });
   });
 }

@@ -7,6 +7,7 @@ import 'package:stadia/data/repositories/local_stadium_repository.dart';
 import 'package:stadia/features/stadium3d/intro_screen.dart';
 import 'package:stadia/features/stadium3d/stadium_scene_controller.dart';
 import 'package:stadia/features/stadium3d/stadium_view.dart';
+import 'package:stadia/l10n/l10n.dart';
 import 'package:stadia/ui/theme.dart';
 
 void main() {
@@ -33,6 +34,9 @@ void main() {
         ],
         child: MaterialApp.router(
           theme: buildStadiaTheme(),
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           routerConfig: router,
         ),
       ),
@@ -40,8 +44,9 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('plays until the scene reports introDone, then goes to the map',
-      (tester) async {
+  testWidgets('plays until the scene reports introDone, then goes to the map', (
+    tester,
+  ) async {
     await pumpIntro(tester);
     expect(find.byKey(const Key('fake-3d')), findsOneWidget);
     expect(find.text('Skip'), findsOneWidget);
@@ -68,8 +73,9 @@ void main() {
     expect(find.text('MAP'), findsOneWidget);
   });
 
-  testWidgets('falls through to the map if the scene never loads',
-      (tester) async {
+  testWidgets('falls through to the map if the scene never loads', (
+    tester,
+  ) async {
     await pumpIntro(tester);
     await tester.pump(IntroScreen.loadTimeout);
     await tester.pumpAndSettle();

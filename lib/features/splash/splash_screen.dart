@@ -6,14 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../ui/format.dart';
 import '../../ui/stadia_loader.dart';
 import '../../ui/tokens.dart';
 import '../../ui/wordmark.dart';
 import 'splash_tasks.dart';
 
-/// "Loading the stadium": warms data (and, from milestone 4, the local 3D
-/// asset server), then hands over to the next route.
+/// "Loading the stadium": warms data and the local 3D asset server, then
+/// hands over to the next route.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -45,14 +46,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
     final stadium = ref.watch(stadiumProvider).value;
-    final subtitle = _error ??
+    final subtitle =
+        _error ??
         (stadium == null
-            ? 'Preparing stands, blocks and seats'
+            ? l10n.preparingSeats
             : '${stadium.name} · ${stadium.city} · '
-                '${formatCount(stadium.capacity)} seats');
+                  '${l10n.seatCount(stadium.capacity, f.count(stadium.capacity))}');
     return Scaffold(
-      backgroundColor: StadiaColors.navy900,
+      backgroundColor: StadiaColors.page,
       body: SafeArea(
         child: Stack(
           children: [
@@ -71,11 +75,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         ),
                     const SizedBox(height: 36),
                     Text(
-                      _error == null
-                          ? 'Loading the stadium'
-                          : 'Something went wrong',
-                      style: StadiaText.title,
-                    )
+                          _error == null
+                              ? l10n.loadingStadium
+                              : l10n.somethingWentWrong,
+                          style: StadiaText.title,
+                        )
                         .animate()
                         .fadeIn(delay: 150.ms, duration: 500.ms)
                         .moveY(begin: 8),
@@ -86,14 +90,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         subtitle,
                         key: ValueKey(subtitle),
                         textAlign: TextAlign.center,
-                        style: StadiaText.body,
+                        style: StadiaText.body.copyWith(
+                          color: StadiaColors.textSecondary,
+                        ),
                       ),
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 20),
                       GestureDetector(
                         onTap: _boot,
-                        child: const Text('Try again', style: StadiaText.label),
+                        child: Text(l10n.tryAgain, style: StadiaText.label),
                       ),
                     ],
                   ],

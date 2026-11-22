@@ -33,8 +33,8 @@ class StadiumMarker extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             GlassSurface(
-              radius: 18,
-              padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+              shadow: true,
+              padding: const EdgeInsetsDirectional.fromSTEB(8, 6, 14, 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -42,14 +42,14 @@ class StadiumMarker extends StatelessWidget {
                     width: 30,
                     height: 30,
                     decoration: const BoxDecoration(
-                      color: StadiaColors.white,
+                      gradient: StadiaGradients.go,
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
                       child: StadiaIcon(
                         StadiaGlyph.stadium,
                         size: 18,
-                        color: StadiaColors.navy900,
+                        color: StadiaColors.ink,
                       ),
                     ),
                   ),
@@ -65,11 +65,7 @@ class StadiumMarker extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: StadiaText.label,
                         ),
-                        Text(
-                          caption,
-                          maxLines: 1,
-                          style: StadiaText.caption,
-                        ),
+                        Text(caption, maxLines: 1, style: StadiaText.caption),
                       ],
                     ),
                   ),
@@ -83,13 +79,16 @@ class StadiumMarker extends StatelessWidget {
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: StadiaColors.white, width: 1.5),
-                    ),
-                  )
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: StadiaColors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                      )
                       .animate(onPlay: (c) => c.repeat())
                       .scale(
                         begin: const Offset(0.3, 0.3),
@@ -104,7 +103,7 @@ class StadiumMarker extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: StadiaColors.white,
                       shape: BoxShape.circle,
-                      border: Border.all(color: StadiaColors.navy900, width: 2),
+                      border: Border.all(color: StadiaColors.ink, width: 2),
                     ),
                   ),
                 ],

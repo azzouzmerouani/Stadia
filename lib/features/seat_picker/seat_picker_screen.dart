@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
 import '../../data/models/stadium.dart';
+import '../../l10n/l10n.dart';
 import '../../ui/buttons.dart';
 import '../../ui/format.dart';
 import '../../ui/glass.dart';
@@ -19,6 +20,7 @@ import '../stadium3d/stadium_scene_controller.dart';
 import '../stadium3d/stadium_view.dart';
 import 'booking_controller.dart';
 import 'booking_machine.dart';
+import 'booking_words.dart';
 import 'seat_sheet_launcher.dart';
 import 'widgets/selection_card.dart';
 
@@ -134,10 +136,11 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
 
   void _onStateChanged(BookingState? previous, BookingState next) {
     if (next.notice != null && next.notice != previous?.notice) {
+      final l10n = context.l10n;
       _showToast(switch (next.notice!) {
-        BookingNotice.standSoldOut => 'This stand is sold out',
-        BookingNotice.blockSoldOut => 'This block is sold out, try another',
-        BookingNotice.seatTaken => 'That seat is taken, pick a free one',
+        BookingNotice.standSoldOut => l10n.standSoldOut,
+        BookingNotice.blockSoldOut => l10n.blockSoldOut,
+        BookingNotice.seatTaken => l10n.seatTakenNotice,
       });
     }
     final stepChanged =
@@ -220,6 +223,8 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
       }
     });
     final viewBuilder = ref.watch(stadiumViewBuilderProvider);
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
 
     return PopScope(
       canPop: state.step == BookingStep.stand,
@@ -227,7 +232,7 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
         if (!didPop) _booking.dispatch(const StepBack());
       },
       child: Scaffold(
-        backgroundColor: StadiaColors.navy900,
+        backgroundColor: StadiaColors.page,
         // Data first: a refresh keeps the previous value, so the WebView
         // (and its camera) survives availability reloads.
         body: switch (ctx) {
@@ -257,10 +262,10 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
                     bottom: false,
                     child: _TopBar(
                       cardKey: _topCardKey,
-                      title: value.match.title,
+                      title: l10n.match(value.match),
                       subtitle:
-                          '${formatMatchDate(value.match.kickoff)} · '
-                          '${formatTime(value.match.kickoff)} · '
+                          '${f.matchDate(value.match.kickoff)} · '
+                          '${f.time(value.match.kickoff)} · '
                           '${value.stadium.name}',
                       step: state.step,
                       onBack: _back,
@@ -299,7 +304,7 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
                               state,
                               value.match,
                             ),
-                            hint: 'Tap a stand to zoom in',
+                            hint: l10n.tapStandHint,
                           ),
                         ],
                       ),
@@ -340,6 +345,7 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         StadiaSpace.md,
@@ -352,7 +358,8 @@ class _TopBar extends StatelessWidget {
         children: [
           GlassSurface(
             key: cardKey,
-            padding: const EdgeInsets.fromLTRB(8, 8, 16, 14),
+            shadow: true,
+            padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 16, 12),
             child: Column(
               children: [
                 Row(
@@ -362,8 +369,8 @@ class _TopBar extends StatelessWidget {
                       size: 40,
                       onPressed: onBack,
                       semanticLabel: step == BookingStep.stand
-                          ? 'Back to matches'
-                          : 'Back',
+                          ? l10n.backToMatches
+                          : l10n.back,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -388,11 +395,11 @@ class _TopBar extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Padding(
-                  padding: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsetsDirectional.only(start: 8),
                   child: StepProgressBar(
-                    labels: [for (final s in BookingStep.values) s.label],
+                    labels: [for (final s in BookingStep.values) l10n.step(s)],
                     current: step.index,
                     onStepTap: onStepTap,
                   ),
@@ -409,7 +416,8 @@ class _TopBar extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 10),
                     child: Center(
                       child: GlassSurface(
-                        radius: 999,
+                        radius: StadiaRadii.pill,
+                        shadow: true,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 9,
@@ -440,6 +448,7 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     Widget item(Color c, String label) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
@@ -456,14 +465,14 @@ class _Legend extends StatelessWidget {
       ),
     );
     return GlassSurface(
-      radius: 999,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+      radius: StadiaRadii.pill,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          item(StadiaColors.free, 'Free'),
-          item(StadiaColors.limited, 'Few left'),
-          item(StadiaColors.sold, 'Sold'),
+          item(StadiaColors.free, l10n.legendFree),
+          item(StadiaColors.limited, l10n.legendFewLeft),
+          item(StadiaColors.sold, l10n.legendSold),
         ],
       ),
     );
@@ -475,15 +484,15 @@ class _SceneLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: StadiaColors.navy900,
+    return ColoredBox(
+      color: StadiaColors.page,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TrackLoader(width: 96),
-            SizedBox(height: 20),
-            Text('Loading the stadium', style: StadiaText.label),
+            const TrackLoader(width: 96),
+            const SizedBox(height: 20),
+            Text(context.l10n.loadingStadium, style: StadiaText.label),
           ],
         ),
       ),

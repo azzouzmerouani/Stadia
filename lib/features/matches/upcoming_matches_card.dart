@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../ui/glass.dart';
 import '../../ui/stadia_loader.dart';
 import '../../ui/tokens.dart';
@@ -47,19 +48,22 @@ class _UpcomingMatchesCardState extends ConsumerState<UpcomingMatchesCard> {
     return Padding(
       padding: EdgeInsets.fromLTRB(8, 0, 8, bottomInset > 0 ? bottomInset : 8),
       child: GlassSurface(
-        radius: StadiaRadii.xl,
-        padding: const EdgeInsets.fromLTRB(0, 18, 0, 14),
+        shadow: true,
+        padding: const EdgeInsets.fromLTRB(0, 14, 0, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: StadiaSpace.gutter + 4,
+                horizontal: StadiaSpace.gutter + 6,
               ),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text('Upcoming matches', style: StadiaText.headline),
+                  Expanded(
+                    child: Text(
+                      context.l10n.upcomingMatches,
+                      style: StadiaText.headline,
+                    ),
                   ),
                   if (matches.value case final list?)
                     Text(
@@ -101,8 +105,8 @@ class _UpcomingMatchesCardState extends ConsumerState<UpcomingMatchesCard> {
                     ),
                   ),
                 AsyncError(:final error) => Center(
-                    child: Text('$error', style: StadiaText.body),
-                  ),
+                  child: Text('$error', style: StadiaText.body),
+                ),
                 _ => const Center(child: TrackLoader(width: 72)),
               },
             ),
@@ -135,7 +139,8 @@ class _Dots extends StatelessWidget {
             width: i == index ? 18 : 6,
             height: 6,
             decoration: BoxDecoration(
-              color: i == index ? StadiaColors.white : StadiaColors.hairline,
+              color: i == index ? null : StadiaColors.overlay15,
+              gradient: i == index ? StadiaGradients.go : null,
               borderRadius: BorderRadius.circular(3),
             ),
           ),

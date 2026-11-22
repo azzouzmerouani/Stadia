@@ -3,15 +3,16 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../data/models/match.dart';
 import '../../../data/models/ticket.dart';
+import '../../../l10n/l10n.dart';
 import '../../../ui/format.dart';
 import '../../../ui/icons.dart';
 import '../../../ui/team_badge.dart';
 import '../../../ui/tokens.dart';
 
 const _paper = StadiaColors.white;
-const _ink = StadiaColors.navy900;
-const _inkSoft = Color(0xA6071327);
-const _inkFaint = Color(0x73071327);
+const _ink = StadiaColors.ink;
+const _inkSoft = Color(0xA637003C);
+const _inkFaint = Color(0x7337003C);
 
 /// Paper ticket: match and seat on top, the QR below a perforated tear line
 /// with half-circle notches cut out of both edges.
@@ -26,7 +27,7 @@ class TicketCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
-      label: 'Ticket ${ticket.id}',
+      label: context.l10n.ticketSemantics(ticket.id),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -34,9 +35,23 @@ class TicketCard extends StatelessWidget {
             clipper: const TicketClipper(notchAt: NotchEdge.bottom),
             child: ColoredBox(
               color: _paper,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                child: _Details(ticket: ticket),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // FPL's signature sweep along the top edge.
+                  const SizedBox(
+                    height: 6,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: StadiaGradients.brand,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+                    child: _Details(ticket: ticket),
+                  ),
+                ],
               ),
             ),
           ),
@@ -122,7 +137,7 @@ class _PerforationPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x33071327)
+      ..color = const Color(0x3337003C)
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
     const inset = TicketCard.notchRadius + 8;
@@ -144,6 +159,8 @@ class _Details extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
     final t = ticket;
     final m = t.match;
     return Column(
@@ -153,7 +170,7 @@ class _Details extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '${m.competition} · ${m.round}'.toUpperCase(),
+                '${m.competition} · ${m.round}',
                 style: StadiaText.overline.copyWith(color: _inkFaint),
               ),
             ),
@@ -171,15 +188,14 @@ class _Details extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      formatTime(m.kickoff),
+                      f.time(m.kickoff),
                       style: StadiaText.number.copyWith(
                         color: _ink,
                         fontSize: 26,
                       ),
                     ),
-                    const SizedBox(height: 3),
                     Text(
-                      formatMatchDate(m.kickoff),
+                      f.matchDate(m.kickoff),
                       style: StadiaText.caption.copyWith(color: _inkSoft),
                     ),
                   ],
@@ -203,29 +219,29 @@ class _Details extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        Container(height: 1, color: const Color(0x14071327)),
-        const SizedBox(height: 14),
+        Container(height: 1, color: const Color(0x1437003C)),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-              child: _Field(label: 'Stand', value: t.standName),
+              child: _Field(label: l10n.labelStand, value: t.standName),
             ),
-            _Field(label: 'Paid', value: formatPrice(t.total), end: true),
+            _Field(label: l10n.labelPaid, value: f.price(t.total), end: true),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-              child: _Field(label: 'Block', value: '${t.blockNumber}'),
+              child: _Field(label: l10n.labelBlock, value: '${t.blockNumber}'),
             ),
             Expanded(
-              child: _Field(label: 'Row', value: '${t.seat.row}'),
+              child: _Field(label: l10n.labelRow, value: '${t.seat.row}'),
             ),
             Expanded(
-              child: _Field(label: 'Seat', value: '${t.seat.seat}'),
+              child: _Field(label: l10n.labelSeat, value: '${t.seat.seat}'),
             ),
-            _Field(label: 'Gate', value: t.gate.id, end: true),
+            _Field(label: l10n.labelGate, value: t.gate.id, end: true),
           ],
         ),
       ],
@@ -246,14 +262,14 @@ class _Pass extends StatelessWidget {
         const SizedBox(height: 14),
         Text(
           ticket.id,
+          textDirection: TextDirection.ltr,
           style: StadiaText.numberSmall.copyWith(
             color: _ink,
             letterSpacing: 1.6,
           ),
         ),
-        const SizedBox(height: 4),
         Text(
-          'Scan at ${ticket.gate.name}',
+          context.l10n.scanAt(ticket.gate.name),
           style: StadiaText.caption.copyWith(color: _inkSoft),
         ),
       ],
@@ -276,7 +292,7 @@ class TicketQr extends StatelessWidget {
       padding: EdgeInsets.zero,
       backgroundColor: _paper,
       errorCorrectionLevel: QrErrorCorrectLevel.M,
-      semanticsLabel: 'Entry QR code',
+      semanticsLabel: context.l10n.entryQr,
       eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: _ink),
       dataModuleStyle: const QrDataModuleStyle(
         dataModuleShape: QrDataModuleShape.square,
@@ -326,10 +342,9 @@ class _Field extends StatelessWidget {
           : CrossAxisAlignment.start,
       children: [
         Text(
-          label.toUpperCase(),
-          style: StadiaText.overline.copyWith(color: _inkFaint, fontSize: 10),
+          label,
+          style: StadiaText.overline.copyWith(color: _inkFaint, fontSize: 10.5),
         ),
-        const SizedBox(height: 4),
         Text(
           value,
           style: StadiaText.numberSmall.copyWith(color: _ink, fontSize: 17),
@@ -347,21 +362,22 @@ class _VipChip extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: _ink,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(StadiaRadii.pill),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+        padding: const EdgeInsetsDirectional.fromSTEB(8, 2, 10, 2),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const StadiaIcon(StadiaGlyph.crown, size: 13),
+            const StadiaIcon(
+              StadiaGlyph.crown,
+              size: 13,
+              color: StadiaColors.green,
+            ),
             const SizedBox(width: 5),
             Text(
               'VIP',
-              style: StadiaText.overline.copyWith(
-                color: StadiaColors.white,
-                letterSpacing: 1,
-              ),
+              style: StadiaText.overline.copyWith(color: StadiaColors.white),
             ),
           ],
         ),

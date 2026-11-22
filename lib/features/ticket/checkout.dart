@@ -24,9 +24,16 @@ class CheckoutSeatTaken extends CheckoutOutcome {
   final String? refundReference;
 }
 
+enum CheckoutFailure { seatGone, payment }
+
 class CheckoutFailed extends CheckoutOutcome {
-  const CheckoutFailed(this.message);
-  final String message;
+  const CheckoutFailed(this.reason, [this.message]);
+
+  /// What the fan is told (translated by the UI).
+  final CheckoutFailure reason;
+
+  /// The payment provider's own wording, for logs and support.
+  final String? message;
 }
 
 class CheckoutCancelled extends CheckoutOutcome {
@@ -86,7 +93,7 @@ class Checkout {
         ? null
         : context.stadium.standById(block.standId);
     if (block == null || stand == null) {
-      return const CheckoutFailed('This seat does not exist any more.');
+      return const CheckoutFailed(CheckoutFailure.seatGone);
     }
 
     // The picker's availability may be minutes old: check before charging.
@@ -102,16 +109,20 @@ class Checkout {
       orderId: 'ORD-${seat.id}-$stamp'.toUpperCase(),
       amount: quote.total,
       method: method,
+      // Language-neutral: shown on Chargily's page and in bank statements.
       description:
           '${match.home.shortName} v ${match.away.shortName} · '
-          '${stand.name} · Block ${block.number} · '
-          'Row ${seat.row} Seat ${seat.seat}${vip ? ' · VIP' : ''}',
+          '${stand.id}${block.number} R${seat.row} S${seat.seat}'
+          '${vip ? ' · VIP' : ''}',
     );
 
     final result = await _ref.read(paymentServiceProvider).pay(request);
     return switch (result) {
       PaymentCancelled() => const CheckoutCancelled(),
-      PaymentFailed(:final message) => CheckoutFailed(message),
+      PaymentFailed(:final message) => CheckoutFailed(
+        CheckoutFailure.payment,
+        message,
+      ),
       PaymentSucceeded(:final receipt) => await _issue(
         context: context,
         seat: seat,

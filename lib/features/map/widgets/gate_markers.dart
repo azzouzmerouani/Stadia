@@ -30,7 +30,7 @@ class GateMarkersLayer extends StatelessWidget {
                   label: g.name,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: StadiaColors.navy800,
+                      color: StadiaColors.purple100,
                       shape: BoxShape.circle,
                       border: Border.all(color: StadiaColors.white, width: 1.2),
                     ),

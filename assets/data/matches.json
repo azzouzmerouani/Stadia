@@ -1,12 +1,12 @@
 {
   "teams": [
-    { "id": "MCO", "name": "MC Oran", "short": "MCO", "city": "Oran", "primary": "#D71920", "secondary": "#FFFFFF" },
-    { "id": "MCA", "name": "MC Alger", "short": "MCA", "city": "Algiers", "primary": "#C8102E", "secondary": "#00843D" },
-    { "id": "JSK", "name": "JS Kabylie", "short": "JSK", "city": "Tizi Ouzou", "primary": "#FFD100", "secondary": "#007A33" },
-    { "id": "ESS", "name": "ES Sétif", "short": "ESS", "city": "Sétif", "primary": "#111111", "secondary": "#FFFFFF" },
-    { "id": "USMA", "name": "USM Alger", "short": "USMA", "city": "Algiers", "primary": "#D50032", "secondary": "#111111" },
-    { "id": "CRB", "name": "CR Belouizdad", "short": "CRB", "city": "Algiers", "primary": "#E30613", "secondary": "#FFFFFF" },
-    { "id": "CSC", "name": "CS Constantine", "short": "CSC", "city": "Constantine", "primary": "#00843D", "secondary": "#111111" }
+    { "id": "MCO", "name": { "en": "MC Oran", "ar": "مولودية وهران" }, "short": "MCO", "city": { "en": "Oran", "ar": "وهران" }, "primary": "#D71920", "secondary": "#FFFFFF", "logo": "assets/clubs/MCO.png" },
+    { "id": "MCA", "name": { "en": "MC Alger", "ar": "مولودية الجزائر" }, "short": "MCA", "city": { "en": "Algiers", "ar": "الجزائر العاصمة" }, "primary": "#C8102E", "secondary": "#00843D", "logo": "assets/clubs/MCA.png" },
+    { "id": "JSK", "name": { "en": "JS Kabylie", "ar": "شبيبة القبائل" }, "short": "JSK", "city": { "en": "Tizi Ouzou", "ar": "تيزي وزو" }, "primary": "#FFD100", "secondary": "#007A33", "logo": "assets/clubs/JSK.png" },
+    { "id": "ESS", "name": { "en": "ES Sétif", "ar": "وفاق سطيف" }, "short": "ESS", "city": { "en": "Sétif", "ar": "سطيف" }, "primary": "#111111", "secondary": "#FFFFFF", "logo": "assets/clubs/ESS.png" },
+    { "id": "USMA", "name": { "en": "USM Alger", "ar": "اتحاد العاصمة" }, "short": "USMA", "city": { "en": "Algiers", "ar": "الجزائر العاصمة" }, "primary": "#D50032", "secondary": "#111111", "logo": "assets/clubs/USMA.png" },
+    { "id": "CRB", "name": { "en": "CR Belouizdad", "ar": "شباب بلوزداد" }, "short": "CRB", "city": { "en": "Algiers", "ar": "الجزائر العاصمة" }, "primary": "#E30613", "secondary": "#FFFFFF", "logo": "assets/clubs/CRB.png" },
+    { "id": "CSC", "name": { "en": "CS Constantine", "ar": "شباب قسنطينة" }, "short": "CSC", "city": { "en": "Constantine", "ar": "قسنطينة" }, "primary": "#00843D", "secondary": "#111111", "logo": "assets/clubs/CSC.png" }
   ],
   "matches": [
     {
@@ -15,8 +15,14 @@
       "home": "MCO",
       "away": "MCA",
       "kickoff": "2026-11-28T17:45:00",
-      "competition": "Ligue 1",
-      "round": "Matchday 12",
+      "competition": {
+        "en": "Ligue 1",
+        "ar": "الرابطة المحترفة الأولى"
+      },
+      "round": {
+        "en": "Matchday 12",
+        "ar": "الجولة 12"
+      },
       "priceMultiplier": 1.5,
       "demand": 0.86
     },
@@ -26,8 +32,14 @@
       "home": "MCO",
       "away": "JSK",
       "kickoff": "2026-12-05T17:00:00",
-      "competition": "Ligue 1",
-      "round": "Matchday 13",
+      "competition": {
+        "en": "Ligue 1",
+        "ar": "الرابطة المحترفة الأولى"
+      },
+      "round": {
+        "en": "Matchday 13",
+        "ar": "الجولة 13"
+      },
       "priceMultiplier": 1.25,
       "demand": 0.7
     },
@@ -37,8 +49,14 @@
       "home": "MCO",
       "away": "ESS",
       "kickoff": "2026-12-12T16:00:00",
-      "competition": "Ligue 1",
-      "round": "Matchday 14",
+      "competition": {
+        "en": "Ligue 1",
+        "ar": "الرابطة المحترفة الأولى"
+      },
+      "round": {
+        "en": "Matchday 14",
+        "ar": "الجولة 14"
+      },
       "priceMultiplier": 1.0,
       "demand": 0.52
     },
@@ -48,8 +66,14 @@
       "home": "MCO",
       "away": "USMA",
       "kickoff": "2026-12-19T17:45:00",
-      "competition": "Ligue 1",
-      "round": "Matchday 15",
+      "competition": {
+        "en": "Ligue 1",
+        "ar": "الرابطة المحترفة الأولى"
+      },
+      "round": {
+        "en": "Matchday 15",
+        "ar": "الجولة 15"
+      },
       "priceMultiplier": 1.25,
       "demand": 0.64
     },
@@ -59,8 +83,14 @@
       "home": "MCO",
       "away": "CSC",
       "kickoff": "2026-12-26T15:00:00",
-      "competition": "Algerian Cup",
-      "round": "Round of 16",
+      "competition": {
+        "en": "Algerian Cup",
+        "ar": "كأس الجزائر"
+      },
+      "round": {
+        "en": "Round of 16",
+        "ar": "ثمن النهائي"
+      },
       "priceMultiplier": 1.0,
       "demand": 0.41
     }

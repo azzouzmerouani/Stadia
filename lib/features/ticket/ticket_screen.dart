@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 import '../../app/routes.dart';
 import '../../data/models/ticket.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../ui/buttons.dart';
 import '../../ui/format.dart';
 import '../../ui/glass.dart';
 import '../../ui/icons.dart';
 import '../../ui/tokens.dart';
+import '../seat_picker/booking_words.dart';
 import 'widgets/ticket_card.dart';
 
 /// "You're in": the issued ticket with its entry QR and gate details.
@@ -27,6 +29,8 @@ class TicketScreen extends ConsumerWidget {
       ),
     );
     void home() => context.go(Routes.map);
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
 
     return PopScope(
       // The booking flow is behind us: back goes to the map, not the sheet.
@@ -35,7 +39,7 @@ class TicketScreen extends ConsumerWidget {
         if (!didPop) home();
       },
       child: Scaffold(
-        backgroundColor: StadiaColors.navy900,
+        backgroundColor: StadiaColors.page,
         body: SafeArea(
           child: ticket == null
               ? _Missing(onHome: home)
@@ -74,8 +78,10 @@ class TicketScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: StadiaSpace.md),
                             Text(
-                              'Paid ${formatPrice(ticket.total)} · '
-                              'Ref ${ticket.paymentReference}',
+                              l10n.paidRef(
+                                f.price(ticket.total),
+                                ticket.paymentReference,
+                              ),
                               textAlign: TextAlign.center,
                               style: StadiaText.caption,
                             ),
@@ -91,7 +97,7 @@ class TicketScreen extends ConsumerWidget {
                         StadiaSpace.md,
                       ),
                       child: StadiaButton(
-                        label: 'Back to the map',
+                        label: l10n.backToMap,
                         leading: StadiaGlyph.pin,
                         onPressed: home,
                       ),
@@ -111,6 +117,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final match = ticket.match;
     return Column(
       children: [
@@ -118,14 +125,14 @@ class _Header extends StatelessWidget {
               width: 58,
               height: 58,
               decoration: const BoxDecoration(
-                color: StadiaColors.free,
+                gradient: StadiaGradients.go,
                 shape: BoxShape.circle,
               ),
               child: const Center(
                 child: StadiaIcon(
                   StadiaGlyph.check,
                   size: 30,
-                  color: StadiaColors.navy900,
+                  color: StadiaColors.ink,
                   strokeWidth: 2.6,
                 ),
               ),
@@ -139,14 +146,15 @@ class _Header extends StatelessWidget {
             )
             .fadeIn(duration: StadiaMotion.medium),
         const SizedBox(height: StadiaSpace.lg),
-        const Text(
-          "You're in",
+        Text(
+          l10n.youreIn,
           textAlign: TextAlign.center,
           style: StadiaText.display,
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
-          '${match.title} · ${formatMatchDateLong(match.kickoff)}',
+          '${l10n.match(match)} · '
+          '${StadiaFormat.of(context).matchDateLong(match.kickoff)}',
           textAlign: TextAlign.center,
           style: StadiaText.body,
         ),
@@ -162,17 +170,17 @@ class _GatesNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final lead = ticket.match.kickoff.difference(ticket.gatesOpenAt);
     final leadText = lead.inMinutes % 60 == 0
-        ? '${lead.inHours} h'
-        : '${lead.inMinutes} min';
+        ? l10n.leadHours(lead.inHours)
+        : l10n.leadMinutes(lead.inMinutes);
     final where = ticket.vip
-        ? 'Use Gate ${ticket.gate.id}, the VIP fast lane. The lounge opens '
-              'with the gates.'
-        : 'Use Gate ${ticket.gate.id}, the entrance for the '
-              '${ticket.standName}.';
+        ? l10n.useGateVip(ticket.gate.id)
+        : l10n.useGateStand(ticket.gate.id, ticket.standName);
     return GlassSurface(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      fill: StadiaColors.purple100,
+      padding: const EdgeInsets.all(16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -183,14 +191,13 @@ class _GatesNote extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Gates open at ${formatTime(ticket.gatesOpenAt)}',
+                  l10n.gatesOpenAt(
+                    StadiaFormat.of(context).time(ticket.gatesOpenAt),
+                  ),
                   style: StadiaText.headline,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  "That's $leadText before kick-off. $where",
-                  style: StadiaText.body.copyWith(fontSize: 14),
-                ),
+                const SizedBox(height: 2),
+                Text(l10n.gatesLead(leadText, where), style: StadiaText.body),
               ],
             ),
           ),
@@ -207,6 +214,7 @@ class _Missing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.all(StadiaSpace.gutter),
       child: Column(
@@ -215,20 +223,19 @@ class _Missing extends StatelessWidget {
         children: [
           const Center(child: StadiaIcon(StadiaGlyph.ticket, size: 36)),
           const SizedBox(height: StadiaSpace.md),
-          const Text(
-            'Ticket not found',
+          Text(
+            l10n.ticketNotFound,
             textAlign: TextAlign.center,
             style: StadiaText.title,
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Tickets are kept on this device for the session. '
-            'Book again from the map.',
+          Text(
+            l10n.ticketNotFoundBody,
             textAlign: TextAlign.center,
             style: StadiaText.body,
           ),
           const SizedBox(height: StadiaSpace.xl),
-          StadiaButton(label: 'Back to the map', onPressed: onHome),
+          StadiaButton(label: l10n.backToMap, onPressed: onHome),
         ],
       ),
     );

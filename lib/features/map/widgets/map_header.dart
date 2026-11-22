@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../ui/buttons.dart';
 import '../../../ui/glass.dart';
 import '../../../ui/icons.dart';
@@ -24,8 +25,9 @@ class MapHeader extends StatelessWidget {
       child: Row(
         children: [
           GlassSurface(
-            radius: 999,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            radius: StadiaRadii.pill,
+            shadow: true,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -46,7 +48,7 @@ class MapHeader extends StatelessWidget {
           GlassIconButton(
             glyph: StadiaGlyph.locate,
             onPressed: onRecenter,
-            semanticLabel: 'Back to the stadium',
+            semanticLabel: context.l10n.backToStadium,
           ),
         ],
       ),

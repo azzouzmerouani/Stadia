@@ -1,29 +1,54 @@
+import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
-final _date = DateFormat('EEE d MMM');
-final _dateLong = DateFormat('EEEE d MMMM');
-final _time = DateFormat('HH:mm');
+/// Dates, times, prices and counts for the current locale.
+///
+/// Arabic follows Algerian usage (`ar_DZ`): Latin digits, Maghreb month
+/// names (جانفي، فيفري … جويلية، أوت) and prices in "د.ج". Requires
+/// `initializeDateFormatting('ar_DZ')` once at start-up (see main.dart).
+class StadiaFormat {
+  const StadiaFormat._(this.arabic);
 
-String formatMatchDate(DateTime d) => _date.format(d);
-String formatMatchDateLong(DateTime d) => _dateLong.format(d);
-String formatTime(DateTime d) => _time.format(d);
+  factory StadiaFormat.of(BuildContext context) =>
+      Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
 
-/// `1500` → `1 500 DA` (Algerian convention, thin no-break space).
-String formatPrice(int dzd) {
-  final digits = dzd.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(' ');
-    buf.write(digits[i]);
-  }
-  return '$buf DA';
+  static const en = StadiaFormat._(false);
+  static const ar = StadiaFormat._(true);
+
+  final bool arabic;
+
+  String get _intl => arabic ? 'ar_DZ' : 'en';
+
+  /// "Sat 28 Nov" / "السبت 28 نوفمبر".
+  String matchDate(DateTime d) => DateFormat('EEE d MMM', _intl).format(d);
+
+  /// "Saturday 28 November".
+  String matchDateLong(DateTime d) =>
+      DateFormat('EEEE d MMMM', _intl).format(d);
+
+  String time(DateTime d) => DateFormat('HH:mm', _intl).format(d);
+
+  String price(int dzd) => formatPrice(dzd, currency: arabic ? 'د.ج' : 'DA');
+
+  /// 40320 -> "40,320" / "40 320" (ar_DZ's "40.320" reads like a decimal).
+  String count(int n) => _group(n, arabic ? _thin : ',');
 }
 
-String formatCount(int n) {
+/// Narrow no-break space: groups digits and, being a common separator in
+/// the bidi algorithm, keeps "1 500" in order inside Arabic text.
+const _thin = ' ';
+
+/// `1500` -> `1 500 DA` (Algerian convention).
+String formatPrice(int dzd, {String currency = 'DA'}) =>
+    '${_group(dzd, _thin)} $currency';
+
+String formatCount(int n) => _group(n, ',');
+
+String _group(int n, String separator) {
   final digits = n.toString();
   final buf = StringBuffer();
   for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
+    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(separator);
     buf.write(digits[i]);
   }
   return buf.toString();

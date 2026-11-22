@@ -6,17 +6,20 @@ import 'tokens.dart';
 ThemeData buildStadiaTheme() {
   const scheme = ColorScheme.dark(
     primary: StadiaColors.white,
-    onPrimary: StadiaColors.navy900,
-    secondary: StadiaColors.focus,
-    surface: StadiaColors.navy900,
+    onPrimary: StadiaColors.ink,
+    secondary: StadiaColors.green,
+    onSecondary: StadiaColors.ink,
+    tertiary: StadiaColors.cyan,
+    surface: StadiaColors.page,
     error: StadiaColors.danger,
   );
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: scheme,
-    scaffoldBackgroundColor: StadiaColors.navy900,
-    canvasColor: StadiaColors.navy900,
+    fontFamily: StadiaText.family,
+    scaffoldBackgroundColor: StadiaColors.page,
+    canvasColor: StadiaColors.page,
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
     textTheme: const TextTheme(
@@ -27,10 +30,8 @@ ThemeData buildStadiaTheme() {
       labelLarge: StadiaText.label,
       bodySmall: StadiaText.caption,
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      modalBarrierColor: Color(0x99040A16),
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: StadiaColors.cyan,
     ),
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {

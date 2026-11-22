@@ -45,7 +45,7 @@ class _StadiumWebViewState extends ConsumerState<StadiumWebView> {
     _log('loading ${server.page(widget.mode, debug: _debugStats)}');
     return WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(StadiaColors.navy900)
+      ..setBackgroundColor(StadiaColors.page)
       ..addJavaScriptChannel(
         bridgeChannelName,
         onMessageReceived: (m) => _onMessage(m.message),
@@ -58,8 +58,10 @@ class _StadiumWebViewState extends ConsumerState<StadiumWebView> {
               ? NavigationDecision.navigate
               : NavigationDecision.prevent,
           onWebResourceError: (error) {
-            _log('resource error ${error.errorCode} ${error.description} '
-                '(${error.url})');
+            _log(
+              'resource error ${error.errorCode} ${error.description} '
+              '(${error.url})',
+            );
             if (error.isForMainFrame ?? true) {
               _emitError('The 3D view could not load (${error.description})');
             }
@@ -110,8 +112,9 @@ class _StadiumWebViewState extends ConsumerState<StadiumWebView> {
     );
   }
 
-  void _emitError(String message) => widget.controller
-      .handleIncoming(jsonEncode({'type': 'error', 'message': message}));
+  void _emitError(String message) => widget.controller.handleIncoming(
+    jsonEncode({'type': 'error', 'message': message}),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +126,7 @@ class _StadiumWebViewState extends ConsumerState<StadiumWebView> {
     final server = ref.watch(localAssetServerProvider);
     final value = server.value;
     if (value == null) {
-      return const ColoredBox(color: StadiaColors.navy900);
+      return const ColoredBox(color: StadiaColors.page);
     }
     if (_web == null || _origin != value.origin) _web = _create(value);
     return WebViewWidget(

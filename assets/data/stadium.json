@@ -1,8 +1,17 @@
 {
   "id": "miloud-hadefi",
-  "name": "Stade Miloud Hadefi",
-  "city": "Oran",
-  "location": { "lat": 35.72853, "lng": -0.54950 },
+  "name": {
+    "en": "Stade Miloud Hadefi",
+    "ar": "ملعب ميلود هدفي"
+  },
+  "city": {
+    "en": "Oran",
+    "ar": "وهران"
+  },
+  "location": {
+    "lat": 35.72853,
+    "lng": -0.5495
+  },
   "gatesOpenMinutesBefore": 120,
   "vipUpgradePrice": 3000,
   "layout": {
@@ -11,50 +20,134 @@
     "rowDepth": 0.8,
     "blockWidth": 16.0,
     "tiers": [
-      { "tier": 1, "rows": 24, "rise": 0.42 },
-      { "tier": 2, "rows": 24, "rise": 0.6 }
+      {
+        "tier": 1,
+        "rows": 24,
+        "rise": 0.42
+      },
+      {
+        "tier": 2,
+        "rows": 24,
+        "rise": 0.6
+      }
     ]
   },
   "stands": [
     {
       "id": "N",
-      "name": "North Stand",
-      "nickname": "Virage Nord",
+      "name": {
+        "en": "North Stand",
+        "ar": "المدرج الشمالي"
+      },
+      "nickname": {
+        "en": "Virage Nord",
+        "ar": "الفيراج الشمالي"
+      },
       "blocksPerTier": 6,
       "gate": "A",
-      "prices": { "1": 600, "2": 400 }
+      "prices": {
+        "1": 600,
+        "2": 400
+      }
     },
     {
       "id": "E",
-      "name": "East Stand",
-      "nickname": "Tribune Est",
+      "name": {
+        "en": "East Stand",
+        "ar": "المدرج الشرقي"
+      },
+      "nickname": {
+        "en": "Tribune Est",
+        "ar": "المنصة الشرقية"
+      },
       "blocksPerTier": 8,
       "gate": "B",
-      "prices": { "1": 1200, "2": 800 }
+      "prices": {
+        "1": 1200,
+        "2": 800
+      }
     },
     {
       "id": "S",
-      "name": "South Stand",
-      "nickname": "Virage Sud",
+      "name": {
+        "en": "South Stand",
+        "ar": "المدرج الجنوبي"
+      },
+      "nickname": {
+        "en": "Virage Sud",
+        "ar": "الفيراج الجنوبي"
+      },
       "blocksPerTier": 6,
       "gate": "C",
-      "prices": { "1": 600, "2": 400 }
+      "prices": {
+        "1": 600,
+        "2": 400
+      }
     },
     {
       "id": "W",
-      "name": "West Stand",
-      "nickname": "Tribune Officielle",
+      "name": {
+        "en": "West Stand",
+        "ar": "المدرج الغربي"
+      },
+      "nickname": {
+        "en": "Tribune Officielle",
+        "ar": "المنصة الشرفية"
+      },
       "blocksPerTier": 8,
       "gate": "D",
       "vip": true,
-      "prices": { "1": 2000, "2": 1500 }
+      "prices": {
+        "1": 2000,
+        "2": 1500
+      }
     }
   ],
   "gates": [
-    { "id": "A", "name": "Gate A", "north": 165, "east": 0 },
-    { "id": "B", "name": "Gate B", "north": 0, "east": 140 },
-    { "id": "C", "name": "Gate C", "north": -165, "east": 0 },
-    { "id": "D", "name": "Gate D", "north": 60, "east": -140 },
-    { "id": "E", "name": "Gate E · VIP", "north": -60, "east": -140 }
+    {
+      "id": "A",
+      "name": {
+        "en": "Gate A",
+        "ar": "الباب A"
+      },
+      "north": 165,
+      "east": 0
+    },
+    {
+      "id": "B",
+      "name": {
+        "en": "Gate B",
+        "ar": "الباب B"
+      },
+      "north": 0,
+      "east": 140
+    },
+    {
+      "id": "C",
+      "name": {
+        "en": "Gate C",
+        "ar": "الباب C"
+      },
+      "north": -165,
+      "east": 0
+    },
+    {
+      "id": "D",
+      "name": {
+        "en": "Gate D",
+        "ar": "الباب D"
+      },
+      "north": 60,
+      "east": -140
+    },
+    {
+      "id": "E",
+      "name": {
+        "en": "Gate E · VIP",
+        "ar": "الباب E · VIP"
+      },
+      "north": -60,
+      "east": -140
+    }
   ]
 }

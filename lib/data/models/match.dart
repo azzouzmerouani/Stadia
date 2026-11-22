@@ -8,6 +8,7 @@ class Team {
     required this.city,
     required this.primaryColor,
     required this.secondaryColor,
+    this.logo,
   });
 
   final String id;
@@ -18,6 +19,10 @@ class Team {
   /// ARGB colours; converted to `Color` in the UI layer.
   final int primaryColor;
   final int secondaryColor;
+
+  /// Crest image (an asset path in the mock data, a CDN URL in production).
+  /// Null: the UI draws a shield in the club colours.
+  final String? logo;
 }
 
 /// Named `FootballMatch` to avoid clashing with `dart:core`'s `Match`.
@@ -48,8 +53,6 @@ class FootballMatch {
 
   /// 0..1 – how full the mock repository makes the stadium.
   final double demand;
-
-  String get title => '${home.name} vs ${away.name}';
 
   /// Ticket price for a block, rounded to the nearest 50 DA.
   int priceFor(Block block) => _round50(block.basePrice * priceMultiplier);

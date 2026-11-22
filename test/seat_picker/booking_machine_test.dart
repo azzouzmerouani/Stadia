@@ -9,20 +9,19 @@ MatchAvailability availabilityFor(
   Stadium stadium, {
   Set<String> soldOutBlocks = const {},
   Map<String, Set<int>> sold = const {},
-}) =>
-    MatchAvailability(
-      matchId: 'test',
-      blocks: {
-        for (final b in stadium.blocks)
-          b.id: BlockAvailability(
-            blockId: b.id,
-            capacity: b.capacity,
-            sold: soldOutBlocks.contains(b.id)
-                ? {for (var i = 0; i < b.capacity; i++) i}
-                : (sold[b.id] ?? const {}),
-          ),
-      },
-    );
+}) => MatchAvailability(
+  matchId: 'test',
+  blocks: {
+    for (final b in stadium.blocks)
+      b.id: BlockAvailability(
+        blockId: b.id,
+        capacity: b.capacity,
+        sold: soldOutBlocks.contains(b.id)
+            ? {for (var i = 0; i < b.capacity; i++) i}
+            : (sold[b.id] ?? const {}),
+      ),
+  },
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -76,8 +75,10 @@ void main() {
     });
 
     test('accepts 3D mesh names as ids', () {
-      final s =
-          run([const StandTapped('Stand_W'), const BlockTapped('Block_W_203')]);
+      final s = run([
+        const StandTapped('Stand_W'),
+        const BlockTapped('Block_W_203'),
+      ]);
       expect(s.standId, 'W');
       expect(s.blockId, 'W_203');
     });
@@ -223,7 +224,8 @@ void main() {
       final s = run([const StandTapped('E')]);
       final summary = machine.summarize(s, match)!;
       expect(summary.level, SelectionLevel.stand);
-      expect(summary.title, 'East Stand');
+      expect(summary.stand.id, 'E');
+      expect(summary.block, isNull);
       final stand = stadium.standById('E')!;
       expect(summary.free, stand.capacity - 720 - 3);
       expect(summary.price, match.priceFor(stadium.blockById('E_201')!));
@@ -233,7 +235,8 @@ void main() {
     test('block and seat show exact price', () {
       final block = run([const StandTapped('E'), const BlockTapped('E_104')]);
       final b = machine.summarize(block, match)!;
-      expect(b.title, 'Block 104');
+      expect(b.level, SelectionLevel.block);
+      expect(b.block?.number, 104);
       expect(b.free, 720 - 3);
       expect(b.price, match.priceFor(stadium.blockById('E_104')!));
 
@@ -241,7 +244,10 @@ void main() {
         block,
         const SeatTapped(SeatRef(blockId: 'E_104', row: 12, seat: 7)),
       );
-      expect(machine.summarize(seat, match)!.title, 'Row 12 · Seat 7');
+      final picked = machine.summarize(seat, match)!;
+      expect(picked.level, SelectionLevel.seat);
+      expect(picked.seat, const SeatRef(blockId: 'E_104', row: 12, seat: 7));
+      expect(picked.priceIsFrom, isFalse);
     });
   });
 }

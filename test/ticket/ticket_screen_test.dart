@@ -8,6 +8,7 @@ import 'package:stadia/data/models/ticket.dart';
 import 'package:stadia/data/providers.dart';
 import 'package:stadia/features/ticket/ticket_screen.dart';
 import 'package:stadia/features/ticket/widgets/ticket_card.dart';
+import 'package:stadia/l10n/l10n.dart';
 import 'package:stadia/ui/format.dart';
 import 'package:stadia/ui/theme.dart';
 
@@ -99,6 +100,9 @@ Future<void> _pump(
       overrides: [ticketWalletProvider.overrideWith(() => _Wallet(tickets))],
       child: MaterialApp.router(
         theme: buildStadiaTheme(),
+        locale: const Locale('en'),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         routerConfig: router,
       ),
     ),

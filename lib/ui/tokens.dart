@@ -1,39 +1,86 @@
 import 'package:flutter/widgets.dart';
 
-/// Stadia design tokens: dark navy + white, glass surfaces, no gradients.
+/// Stadia design tokens, after the Fantasy Premier League ("ism") design
+/// system: deep purple surfaces, white type, electric green / cyan / lilac
+/// accents, 8-12-16 radii and pill buttons. Type is Cairo (Arabic + Latin).
 abstract final class StadiaColors {
-  static const navy950 = Color(0xFF040A16);
-  static const navy900 = Color(0xFF071327);
-  static const navy800 = Color(0xFF0C1D3A);
-  static const navy700 = Color(0xFF13294C);
-  static const navy600 = Color(0xFF1C3762);
-  static const navy400 = Color(0xFF3F5D8C);
+  // Purple ramp (FPL "mono" scale), darkest first.
+  static const purple120 = Color(0xFF1E0021);
+  static const purple110 = Color(0xFF28002B);
+  static const purple100 = Color(0xFF37003C);
+  static const purple90 = Color(0xFF41054B);
+  static const purple80 = Color(0xFF541E5D);
+  static const purple70 = Color(0xFF7D5980);
+  static const purple50 = Color(0xFF9B809D);
+  static const purple20 = Color(0xFFD7CCD8);
+  static const purple10 = Color(0xFFEBE5EB);
+  static const purple5 = Color(0xFFF5F2F5);
+
+  // Brand accents.
+  static const green = Color(0xFF00FF87);
+  static const cyan = Color(0xFF05F0FF);
+  static const lilac = Color(0xFF953BFF);
+  static const pink = Color(0xFFE90052);
+
+  /// Screen background.
+  static const page = purple120;
+
+  /// Text and icons on white (buttons, the paper ticket).
+  static const ink = purple100;
 
   static const white = Color(0xFFFFFFFF);
   static const text = white;
   static const textSecondary = Color(0xBFFFFFFF); // 75 %
-  static const textTertiary = Color(0x80FFFFFF); // 50 %
-  static const hairline = Color(0x24FFFFFF); // 14 %
-  static const divider = Color(0x14FFFFFF); // 8 %
+  static const textTertiary = Color(0x8CFFFFFF); // 55 %
+  static const hairline = Color(0x26FFFFFF); // 15 %
+  static const divider = Color(0x1AFFFFFF); // 10 %
 
-  /// Glass on dark content: translucent navy + faint white rim.
-  static const glassDark = Color(0x9E0C1D3A); // navy800 @ 62 %
-  static const glassLight = Color(0x1FFFFFFF); // white @ 12 %
-  static const glassBorder = Color(0x2EFFFFFF); // white @ 18 %
+  /// White washes FPL layers on purple (5 / 10 / 15 %).
+  static const overlay5 = Color(0x0DFFFFFF);
+  static const overlay10 = Color(0x1AFFFFFF);
+  static const overlay15 = Color(0x26FFFFFF);
 
-  /// Availability – the only accents in the app.
-  static const free = Color(0xFF5FE0A6);
-  static const limited = Color(0xFFFFC65C);
-  static const sold = Color(0xFF41516E);
-  static const focus = Color(0xFF8DC9FF);
-  static const danger = Color(0xFFFF6B6B);
+  /// Floating panels over the map and the 3D scene: purple110 at 90 %.
+  static const glassDark = Color(0xE628002B);
+  static const glassLight = overlay10;
+  static const glassBorder = Color(0x1FFFFFFF); // 12 %
+
+  /// Availability.
+  static const free = green;
+  static const limited = Color(0xFFFF1B54);
+  static const sold = purple70;
+
+  static const focus = cyan;
+  static const danger = Color(0xFFFF1B54);
+}
+
+/// FPL's two signature sweeps. Directional, so they run right-to-left in
+/// Arabic (FPL flips its 90deg gradients to 270deg for RTL the same way).
+abstract final class StadiaGradients {
+  static const brand = LinearGradient(
+    begin: AlignmentDirectional.centerStart,
+    end: AlignmentDirectional.centerEnd,
+    colors: [StadiaColors.cyan, StadiaColors.lilac],
+  );
+  static const go = LinearGradient(
+    begin: AlignmentDirectional.centerStart,
+    end: AlignmentDirectional.centerEnd,
+    colors: [StadiaColors.green, StadiaColors.cyan],
+  );
 }
 
 abstract final class StadiaRadii {
-  static const sm = 12.0;
-  static const md = 16.0;
-  static const lg = 22.0;
-  static const xl = 28.0;
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const pill = 999.0;
+}
+
+abstract final class StadiaShadows {
+  /// FPL's card shadow: 0 8 20 black @ 20 %.
+  static const card = [
+    BoxShadow(color: Color(0x33000000), offset: Offset(0, 8), blurRadius: 20),
+  ];
 }
 
 abstract final class StadiaSpace {
@@ -43,7 +90,7 @@ abstract final class StadiaSpace {
   static const lg = 16.0;
   static const xl = 20.0;
   static const xxl = 28.0;
-  static const gutter = 20.0;
+  static const gutter = 16.0;
 }
 
 abstract final class StadiaMotion {
@@ -53,67 +100,74 @@ abstract final class StadiaMotion {
   static const emphasized = Cubic(0.2, 0.0, 0.0, 1.0);
 }
 
-/// Type scale (platform font: SF Pro on iOS, Roboto on Android).
+/// Type scale on Cairo. FPL's bold 32/24/20/16 headings and 14/1.4 body,
+/// with a little more line height for Arabic, and no letter spacing (it
+/// would pull Arabic letters apart).
 abstract final class StadiaText {
+  static const family = 'Cairo';
   static const _tabular = [FontFeature.tabularFigures()];
 
   static const display = TextStyle(
-    fontSize: 34,
-    height: 1.08,
+    fontFamily: family,
+    fontSize: 30,
+    height: 1.3,
     fontWeight: FontWeight.w800,
-    letterSpacing: -1.0,
     color: StadiaColors.text,
   );
   static const title = TextStyle(
+    fontFamily: family,
     fontSize: 22,
-    height: 1.2,
+    height: 1.35,
     fontWeight: FontWeight.w700,
-    letterSpacing: -0.4,
     color: StadiaColors.text,
   );
   static const headline = TextStyle(
+    fontFamily: family,
     fontSize: 17,
-    height: 1.25,
+    height: 1.4,
     fontWeight: FontWeight.w700,
-    letterSpacing: -0.2,
     color: StadiaColors.text,
   );
   static const body = TextStyle(
-    fontSize: 15,
-    height: 1.4,
+    fontFamily: family,
+    fontSize: 14,
+    height: 1.5,
     fontWeight: FontWeight.w400,
     color: StadiaColors.textSecondary,
   );
   static const label = TextStyle(
+    fontFamily: family,
     fontSize: 14,
-    height: 1.2,
+    height: 1.4,
     fontWeight: FontWeight.w600,
     color: StadiaColors.text,
   );
   static const caption = TextStyle(
-    fontSize: 12.5,
-    height: 1.3,
+    fontFamily: family,
+    fontSize: 12,
+    height: 1.45,
     fontWeight: FontWeight.w500,
     color: StadiaColors.textTertiary,
   );
   static const overline = TextStyle(
-    fontSize: 11,
-    height: 1.2,
+    fontFamily: family,
+    fontSize: 11.5,
+    height: 1.35,
     fontWeight: FontWeight.w700,
-    letterSpacing: 1.4,
     color: StadiaColors.textTertiary,
   );
   static const number = TextStyle(
+    fontFamily: family,
     fontSize: 22,
-    height: 1.1,
-    fontWeight: FontWeight.w700,
-    letterSpacing: -0.4,
+    height: 1.25,
+    fontWeight: FontWeight.w800,
     color: StadiaColors.text,
     fontFeatures: _tabular,
   );
   static const numberSmall = TextStyle(
+    fontFamily: family,
     fontSize: 15,
-    height: 1.2,
+    height: 1.3,
     fontWeight: FontWeight.w700,
     color: StadiaColors.text,
     fontFeatures: _tabular,

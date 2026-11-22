@@ -17,6 +17,7 @@ import 'package:stadia/features/stadium3d/stadium_scene_controller.dart';
 import 'package:stadia/features/stadium3d/stadium_view.dart';
 import 'package:stadia/features/ticket/ticket_screen.dart';
 import 'package:stadia/features/ticket/widgets/ticket_card.dart';
+import 'package:stadia/l10n/l10n.dart';
 import 'package:stadia/ui/format.dart';
 import 'package:stadia/ui/theme.dart';
 
@@ -71,6 +72,9 @@ void main() {
         ],
         child: MaterialApp.router(
           theme: buildStadiaTheme(),
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           routerConfig: router,
         ),
       ),
@@ -135,7 +139,7 @@ void main() {
     expect(booking().step, BookingStep.buy);
     expect(inSheet('Row ${seat.row} · Seat ${seat.seat}'), findsOneWidget);
     expect(inSheet('View from your seat'), findsOneWidget);
-    expect(inSheet('Preview unavailable'), findsOneWidget); // no WebView
+    expect(inSheet('Something went wrong'), findsOneWidget); // no WebView
     expect(inSheet('${block.number}'), findsOneWidget);
     expect(inSheet('B'), findsOneWidget);
     expect(inSheet(formatPrice(price)), findsOneWidget);
@@ -217,7 +221,7 @@ void main() {
 
     await tester.tap(find.text('Buy ticket'));
     await settle(tester);
-    await tester.tap(find.textContaining('Pay '));
+    await tester.tap(find.textContaining(RegExp(r'^Pay \d')));
     await settle(tester);
 
     expect(find.text('That seat was just taken'), findsOneWidget);

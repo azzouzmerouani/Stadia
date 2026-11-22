@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/stadium.dart';
 import '../../data/payment/payment_service.dart';
+import '../../l10n/l10n.dart';
 import '../../ui/buttons.dart';
 import '../../ui/format.dart';
 import '../../ui/glass.dart';
@@ -19,6 +20,7 @@ import '../stadium3d/stadium_scene_controller.dart';
 import '../ticket/checkout.dart';
 import 'booking_controller.dart';
 import 'booking_machine.dart';
+import 'booking_words.dart';
 
 /// Opens the seat sheet over the 3D view. Completes with the issued ticket
 /// id, or null when the fan closed it or chose another seat.
@@ -34,7 +36,7 @@ Future<String?> showSeatSheet(
     backgroundColor: Colors.transparent,
     elevation: 0,
     // Light barrier: the seat stays visible above the sheet.
-    barrierColor: const Color(0x1F040A16),
+    barrierColor: const Color(0x261E0021),
     builder: (_) =>
         SeatSheet(matchId: matchId, scene: scene, topInset: topInset),
   );
@@ -123,10 +125,14 @@ class _SeatSheetState extends ConsumerState<SeatSheet> {
           _stage = _Stage.taken;
           _refundReference = refundReference;
         });
-      case CheckoutFailed(:final message):
+      case CheckoutFailed(:final reason):
+        final l10n = context.l10n;
         setState(() {
           _paying = false;
-          _error = message;
+          _error = switch (reason) {
+            CheckoutFailure.seatGone => l10n.errorSeatGone,
+            CheckoutFailure.payment => l10n.errorPayment,
+          };
         });
       case CheckoutCancelled():
         setState(() => _paying = false);
@@ -201,9 +207,9 @@ class _SeatSheetState extends ConsumerState<SeatSheet> {
                 maxHeight: MediaQuery.sizeOf(context).height * 0.9,
               ),
               child: GlassSurface(
-                radius: StadiaRadii.xl,
                 blur: 18,
-                fill: const Color(0xF00C1D3A),
+                shadow: true,
+                fill: const Color(0xF528002B),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
                   child: AnimatedSize(
@@ -268,6 +274,8 @@ class _SeatStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -281,15 +289,13 @@ class _SeatStage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('YOUR SEAT', style: StadiaText.overline),
-                  const SizedBox(height: 4),
+                  Text(l10n.levelYourSeat, style: StadiaText.overline),
                   Text(
-                    'Row ${seat.row} · Seat ${seat.seat}',
+                    l10n.rowSeat(seat.row, seat.seat),
                     style: StadiaText.title,
                   ),
-                  const SizedBox(height: 2),
                   Text(
-                    '${stand.name} · ${block.tier == 1 ? 'Lower' : 'Upper'} tier',
+                    '${stand.name} · ${l10n.tier(block)}',
                     style: StadiaText.caption,
                   ),
                 ],
@@ -300,14 +306,10 @@ class _SeatStage extends StatelessWidget {
               children: [
                 _Swap(
                   value: quote.total,
-                  child: Text(
-                    formatPrice(quote.total),
-                    style: StadiaText.number,
-                  ),
+                  child: Text(f.price(quote.total), style: StadiaText.number),
                 ),
-                const SizedBox(height: 2),
                 Text(
-                  quote.vip ? 'incl. VIP' : 'per ticket',
+                  quote.vip ? l10n.inclVip : l10n.perTicket,
                   style: StadiaText.caption,
                 ),
               ],
@@ -319,10 +321,10 @@ class _SeatStage extends StatelessWidget {
         const SizedBox(height: 12),
         _InfoRow(
           cells: [
-            ('Block', '${block.number}'),
-            ('Row', '${seat.row}'),
-            ('Seat', '${seat.seat}'),
-            ('Gate', gateId),
+            (l10n.labelBlock, '${block.number}'),
+            (l10n.labelRow, '${seat.row}'),
+            (l10n.labelSeat, '${seat.seat}'),
+            (l10n.labelGate, gateId),
           ],
         ),
         const SizedBox(height: 10),
@@ -332,7 +334,7 @@ class _SeatStage extends StatelessWidget {
           children: [
             Expanded(
               child: StadiaButton(
-                label: 'Another seat',
+                label: l10n.anotherSeat,
                 variant: StadiaButtonVariant.outline,
                 onPressed: onAnotherSeat,
               ),
@@ -340,7 +342,8 @@ class _SeatStage extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: StadiaButton(
-                label: 'Buy ticket',
+                label: l10n.buyTicket,
+                variant: StadiaButtonVariant.accent,
                 trailing: StadiaGlyph.arrowRight,
                 onPressed: onBuy,
               ),
@@ -380,6 +383,8 @@ class _CheckoutStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -392,19 +397,15 @@ class _CheckoutStage extends StatelessWidget {
               glyph: StadiaGlyph.back,
               size: 38,
               onPressed: paying ? null : onBack,
-              semanticLabel: 'Back to seat',
+              semanticLabel: l10n.backToSeat,
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Checkout', style: StadiaText.headline),
-                  SizedBox(height: 2),
-                  Text(
-                    'Test mode · no card is charged',
-                    style: StadiaText.caption,
-                  ),
+                  Text(l10n.checkoutTitle, style: StadiaText.headline),
+                  Text(l10n.testMode, style: StadiaText.caption),
                 ],
               ),
             ),
@@ -412,15 +413,15 @@ class _CheckoutStage extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _PriceLine(
-          title: '${stand.name} · Block ${block.number}',
-          subtitle: 'Row ${seat.row} · Seat ${seat.seat}',
+          title: '${stand.name} · ${l10n.blockNumber(block.number)}',
+          subtitle: l10n.rowSeat(seat.row, seat.seat),
           amount: quote.seatPrice,
         ),
         if (quote.vip) ...[
           const SizedBox(height: 10),
           _PriceLine(
-            title: 'VIP upgrade',
-            subtitle: 'Lounge access · Gate E fast lane',
+            title: l10n.vipUpgrade,
+            subtitle: l10n.vipPerks,
             amount: quote.vipPrice,
           ),
         ],
@@ -429,13 +430,13 @@ class _CheckoutStage extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            const Text('Total', style: StadiaText.label),
+            Text(l10n.total, style: StadiaText.label),
             const Spacer(),
-            Text(formatPrice(quote.total), style: StadiaText.number),
+            Text(f.price(quote.total), style: StadiaText.number),
           ],
         ),
         const SizedBox(height: 18),
-        const Text('PAY WITH', style: StadiaText.overline),
+        Text(l10n.payWith, style: StadiaText.overline),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -475,7 +476,8 @@ class _CheckoutStage extends StatelessWidget {
         ],
         const SizedBox(height: 16),
         StadiaButton(
-          label: 'Pay ${formatPrice(quote.total)}',
+          label: l10n.payAmount(f.price(quote.total)),
+          variant: StadiaButtonVariant.accent,
           loading: paying,
           onPressed: onPay,
         ),
@@ -496,9 +498,11 @@ class _TakenStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = refundReference == null
-        ? 'Nothing was charged.'
-        : 'Payment $refundReference will be refunded.';
+    final l10n = context.l10n;
+    final reference = refundReference;
+    final money = reference == null
+        ? l10n.nothingCharged
+        : l10n.willBeRefunded(reference);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -507,19 +511,19 @@ class _TakenStage extends StatelessWidget {
         const SizedBox(height: 18),
         const Center(child: StadiaIcon(StadiaGlyph.seat, size: 30)),
         const SizedBox(height: 12),
-        const Text(
-          'That seat was just taken',
+        Text(
+          l10n.seatJustTaken,
           textAlign: TextAlign.center,
           style: StadiaText.title,
         ),
         const SizedBox(height: 6),
         Text(
-          'Someone booked it a moment before you. $money',
+          l10n.seatTakenBody(money),
           textAlign: TextAlign.center,
           style: StadiaText.body,
         ),
         const SizedBox(height: 18),
-        StadiaButton(label: 'Pick another seat', onPressed: onAnotherSeat),
+        StadiaButton(label: l10n.pickAnotherSeat, onPressed: onAnotherSeat),
       ],
     );
   }
@@ -605,16 +609,17 @@ class _SeatViewState extends State<_SeatView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final image = _image;
     return Semantics(
-      label: 'View from your seat',
+      label: l10n.viewFromSeat,
       image: true,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(StadiaRadii.md),
         child: SizedBox(
           height: _height,
           child: ColoredBox(
-            color: StadiaColors.navy950,
+            color: StadiaColors.purple120,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -625,38 +630,38 @@ class _SeatViewState extends State<_SeatView> {
                 else
                   Center(
                     child: _done
-                        ? const Column(
+                        ? Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              StadiaIcon(
+                              const StadiaIcon(
                                 StadiaGlyph.cube,
                                 size: 26,
                                 color: StadiaColors.textTertiary,
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Text(
-                                'Preview unavailable',
+                                l10n.somethingWentWrong,
                                 style: StadiaText.caption,
                               ),
                             ],
                           )
                         : const TrackLoader(width: 64),
                   ),
-                const Positioned(
-                  left: 10,
+                PositionedDirectional(
+                  start: 10,
                   top: 10,
                   child: _Chip(
                     glyph: StadiaGlyph.cube,
-                    text: 'View from your seat',
+                    text: l10n.viewFromSeat,
                   ),
                 ),
                 if (image != null)
-                  const Positioned(
-                    right: 10,
+                  PositionedDirectional(
+                    end: 10,
                     bottom: 10,
                     child: _Chip(
                       glyph: StadiaGlyph.orbit,
-                      text: 'Drag to look around',
+                      text: l10n.dragToLookAround,
                     ),
                   ),
               ],
@@ -709,12 +714,11 @@ class _Chip extends StatelessWidget {
     return IgnorePointer(
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xB3071327),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: StadiaColors.hairline),
+          color: const Color(0xCC28002B),
+          borderRadius: BorderRadius.circular(StadiaRadii.pill),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+          padding: const EdgeInsetsDirectional.fromSTEB(8, 3, 10, 3),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -743,10 +747,10 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 60,
+      height: 62,
       decoration: BoxDecoration(
-        color: const Color(0x0AFFFFFF),
-        borderRadius: BorderRadius.circular(StadiaRadii.sm + 2),
+        color: StadiaColors.overlay5,
+        borderRadius: BorderRadius.circular(StadiaRadii.md),
         border: Border.all(color: StadiaColors.divider),
       ),
       child: Row(
@@ -759,10 +763,9 @@ class _InfoRow extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    cells[i].$1.toUpperCase(),
-                    style: StadiaText.overline.copyWith(fontSize: 10),
+                    cells[i].$1,
+                    style: StadiaText.overline.copyWith(fontSize: 10.5),
                   ),
-                  const SizedBox(height: 5),
                   _Swap(
                     value: cells[i].$2,
                     child: Text(
@@ -793,20 +796,22 @@ class _VipOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
     return Semantics(
       toggled: on,
       child: SpringPress(
         onTap: () => onChanged(!on),
         pressedScale: 0.98,
-        semanticLabel: 'VIP upgrade',
+        semanticLabel: l10n.vipUpgrade,
         child: AnimatedContainer(
           duration: StadiaMotion.fast,
-          padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+          padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
           decoration: BoxDecoration(
-            color: on ? const Color(0x1AFFFFFF) : const Color(0x0AFFFFFF),
-            borderRadius: BorderRadius.circular(StadiaRadii.sm + 2),
+            color: on ? StadiaColors.overlay10 : StadiaColors.overlay5,
+            borderRadius: BorderRadius.circular(StadiaRadii.md),
             border: Border.all(
-              color: on ? const Color(0xB3FFFFFF) : StadiaColors.divider,
+              color: on ? StadiaColors.green : StadiaColors.divider,
             ),
           ),
           child: Row(
@@ -819,10 +824,10 @@ class _VipOption extends StatelessWidget {
                   children: [
                     Text.rich(
                       TextSpan(
-                        text: 'VIP upgrade',
+                        text: l10n.vipUpgrade,
                         children: [
                           TextSpan(
-                            text: '  +${formatPrice(price)}',
+                            text: '  +${f.price(price)}',
                             style: StadiaText.numberSmall.copyWith(
                               fontSize: 13.5,
                               color: StadiaColors.textSecondary,
@@ -832,9 +837,8 @@ class _VipOption extends StatelessWidget {
                       ),
                       style: StadiaText.label,
                     ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Lounge access · Gate E fast lane',
+                    Text(
+                      l10n.vipPerks,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: StadiaText.caption,
@@ -865,19 +869,21 @@ class _Toggle extends StatelessWidget {
       height: 26,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: on ? StadiaColors.white : const Color(0x24FFFFFF),
+        color: on ? StadiaColors.green : StadiaColors.overlay15,
         borderRadius: BorderRadius.circular(13),
       ),
       child: AnimatedAlign(
         duration: StadiaMotion.medium,
         curve: StadiaMotion.emphasized,
-        alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+        alignment: on
+            ? AlignmentDirectional.centerEnd
+            : AlignmentDirectional.centerStart,
         child: AnimatedContainer(
           duration: StadiaMotion.fast,
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: on ? StadiaColors.navy900 : StadiaColors.white,
+            color: on ? StadiaColors.ink : StadiaColors.white,
             shape: BoxShape.circle,
           ),
         ),
@@ -907,12 +913,14 @@ class _PriceLine extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: StadiaText.label),
-              const SizedBox(height: 2),
               Text(subtitle, style: StadiaText.caption),
             ],
           ),
         ),
-        Text(formatPrice(amount), style: StadiaText.numberSmall),
+        Text(
+          StadiaFormat.of(context).price(amount),
+          style: StadiaText.numberSmall,
+        ),
       ],
     );
   }
@@ -931,20 +939,21 @@ class _MethodTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Semantics(
       selected: selected,
       child: SpringPress(
         onTap: onTap,
         pressedScale: 0.97,
-        semanticLabel: method.label,
+        semanticLabel: l10n.method(method),
         child: AnimatedContainer(
           duration: StadiaMotion.fast,
-          padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 10, 10),
           decoration: BoxDecoration(
-            color: selected ? const Color(0x1AFFFFFF) : const Color(0x08FFFFFF),
-            borderRadius: BorderRadius.circular(StadiaRadii.sm + 2),
+            color: selected ? StadiaColors.overlay10 : StadiaColors.overlay5,
+            borderRadius: BorderRadius.circular(StadiaRadii.md),
             border: Border.all(
-              color: selected ? StadiaColors.white : StadiaColors.divider,
+              color: selected ? StadiaColors.cyan : StadiaColors.divider,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -956,10 +965,9 @@ class _MethodTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(method.label, style: StadiaText.label),
-                    const SizedBox(height: 2),
+                    Text(l10n.method(method), style: StadiaText.label),
                     Text(
-                      method.caption,
+                      l10n.methodCaption(method),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: StadiaText.caption.copyWith(fontSize: 11.5),

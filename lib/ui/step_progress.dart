@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import 'tokens.dart';
 
-/// Segmented progress bar: one segment per step, labels underneath.
-/// Completed steps are tappable to jump back.
+/// Segmented progress bar: one segment per step, labels underneath, filled
+/// with FPL's cyan-to-lilac sweep (right-to-left in Arabic). Completed
+/// steps are tappable to jump back.
 class StepProgressBar extends StatelessWidget {
   const StepProgressBar({
     super.key,
@@ -18,20 +20,21 @@ class StepProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Semantics(
-      label: 'Step ${current + 1} of ${labels.length}: ${labels[current]}',
+      label: l10n.stepProgress(current + 1, labels.length, labels[current]),
       child: Row(
         children: [
           for (var i = 0; i < labels.length; i++) ...[
             if (i > 0) const SizedBox(width: 6),
-            Expanded(child: _segment(i)),
+            Expanded(child: _segment(l10n, i)),
           ],
         ],
       ),
     );
   }
 
-  Widget _segment(int i) {
+  Widget _segment(AppLocalizations l10n, int i) {
     final done = i < current;
     final active = i == current;
     final tappable = done && onStepTap != null;
@@ -46,19 +49,21 @@ class StepProgressBar extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                const ColoredBox(color: StadiaColors.hairline),
+                const ColoredBox(color: StadiaColors.overlay15),
                 AnimatedFractionallySizedBox(
                   duration: StadiaMotion.slow,
                   curve: StadiaMotion.emphasized,
-                  alignment: Alignment.centerLeft,
+                  alignment: AlignmentDirectional.centerStart,
                   widthFactor: done ? 1 : (active ? 0.5 : 0),
-                  child: const ColoredBox(color: StadiaColors.white),
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(gradient: StadiaGradients.brand),
+                  ),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 6),
         AnimatedDefaultTextStyle(
           duration: StadiaMotion.medium,
           style: StadiaText.caption.copyWith(
@@ -75,7 +80,11 @@ class StepProgressBar extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => onStepTap!(i),
-      child: Semantics(button: true, label: 'Back to ${labels[i]}', child: child),
+      child: Semantics(
+        button: true,
+        label: l10n.backToStep(labels[i]),
+        child: child,
+      ),
     );
   }
 }

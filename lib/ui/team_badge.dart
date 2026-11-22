@@ -3,9 +3,40 @@ import 'package:flutter/material.dart';
 import '../data/models/match.dart';
 import 'tokens.dart';
 
-/// Club crest drawn from the club colours (no third-party logos).
+/// Club crest: the club's logo when the data has one, otherwise a shield
+/// drawn in the club colours.
 class TeamBadge extends StatelessWidget {
   const TeamBadge({super.key, required this.team, this.size = 48});
+
+  final Team team;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = team.logo;
+    final drawn = _DrawnCrest(team: team, size: size);
+    return Semantics(
+      label: team.name,
+      image: true,
+      child: SizedBox.square(
+        dimension: size,
+        child: logo == null
+            ? drawn
+            : Image.asset(
+                logo,
+                fit: BoxFit.contain,
+                // Decoded at display size (x3 for dense screens).
+                cacheHeight: (size * 3).round(),
+                excludeFromSemantics: true,
+                errorBuilder: (context, error, stack) => drawn,
+              ),
+      ),
+    );
+  }
+}
+
+class _DrawnCrest extends StatelessWidget {
+  const _DrawnCrest({required this.team, required this.size});
 
   final Team team;
   final double size;
@@ -15,26 +46,22 @@ class TeamBadge extends StatelessWidget {
     final primary = Color(team.primaryColor);
     final secondary = Color(team.secondaryColor);
     final onPrimary = primary.computeLuminance() > 0.5
-        ? StadiaColors.navy900
+        ? StadiaColors.ink
         : StadiaColors.white;
-    return Semantics(
-      label: team.name,
-      child: SizedBox.square(
-        dimension: size,
-        child: CustomPaint(
-          painter: _CrestPainter(primary, secondary),
-          child: Center(
-            child: Padding(
-              padding: EdgeInsets.only(top: size * 0.04),
-              child: Text(
-                team.shortName,
-                style: TextStyle(
-                  color: onPrimary,
-                  fontSize: size * (team.shortName.length > 3 ? 0.2 : 0.24),
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.2,
-                ),
-              ),
+    return CustomPaint(
+      painter: _CrestPainter(primary, secondary),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.only(top: size * 0.04),
+          child: Text(
+            team.shortName,
+            textDirection: TextDirection.ltr,
+            style: TextStyle(
+              fontFamily: StadiaText.family,
+              color: onPrimary,
+              fontSize: size * (team.shortName.length > 3 ? 0.2 : 0.24),
+              fontWeight: FontWeight.w800,
+              height: 1,
             ),
           ),
         ),
@@ -69,7 +96,7 @@ class _CrestPainter extends CustomPainter {
     canvas.drawPath(_shield(size, 0), Paint()..color = secondary);
     final innerInset = size.width * 0.07;
     canvas.drawPath(_shield(size, innerInset), Paint()..color = primary);
-    // Thin hairline so white/black crests still read on navy.
+    // Thin hairline so white/black crests still read on purple.
     canvas.drawPath(
       _shield(size, 0.5),
       Paint()

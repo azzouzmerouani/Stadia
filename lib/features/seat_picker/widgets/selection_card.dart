@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../ui/format.dart';
 import '../../../ui/glass.dart';
 import '../../../ui/icons.dart';
 import '../../../ui/tokens.dart';
 import '../booking_machine.dart';
+import '../booking_words.dart';
 
 Color availabilityColour(double freeRatio) {
   if (freeRatio <= 0) return StadiaColors.sold;
@@ -12,7 +14,7 @@ Color availabilityColour(double freeRatio) {
   return StadiaColors.free;
 }
 
-/// Floating glass card: name, free seats and price of the tapped element.
+/// Floating card: name, free seats and price of the tapped element.
 class SelectionCard extends StatelessWidget {
   const SelectionCard({super.key, required this.summary, this.hint});
 
@@ -24,8 +26,12 @@ class SelectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = summary;
+    final id = s == null
+        ? 'hint'
+        : '${s.level.name}-${s.seat?.id ?? s.block?.id ?? s.stand.id}';
     return GlassSurface(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      shadow: true,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: AnimatedSize(
         duration: StadiaMotion.medium,
         curve: StadiaMotion.emphasized,
@@ -36,14 +42,16 @@ class SelectionCard extends StatelessWidget {
           transitionBuilder: (child, anim) => FadeTransition(
             opacity: anim,
             child: SlideTransition(
-              position: Tween(begin: const Offset(0, 0.15), end: Offset.zero)
-                  .animate(anim),
+              position: Tween(
+                begin: const Offset(0, 0.15),
+                end: Offset.zero,
+              ).animate(anim),
               child: child,
             ),
           ),
           child: s == null
-              ? _Hint(key: const ValueKey('hint'), text: hint ?? '')
-              : _Details(key: ValueKey('${s.level}-${s.title}'), summary: s),
+              ? _Hint(key: ValueKey(id), text: hint ?? '')
+              : _Details(key: ValueKey(id), summary: s),
         ),
       ),
     );
@@ -74,12 +82,14 @@ class _Details extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
     final s = summary;
     final colour = availabilityColour(s.freeRatio);
     final level = switch (s.level) {
-      SelectionLevel.stand => 'STAND',
-      SelectionLevel.block => 'BLOCK',
-      SelectionLevel.seat => 'YOUR SEAT',
+      SelectionLevel.stand => l10n.levelStand,
+      SelectionLevel.block => l10n.levelBlock,
+      SelectionLevel.seat => l10n.levelYourSeat,
     };
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -90,16 +100,14 @@ class _Details extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(level, style: StadiaText.overline),
-              const SizedBox(height: 4),
               Text(
-                s.title,
+                l10n.summaryTitle(s),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: StadiaText.headline,
               ),
-              const SizedBox(height: 2),
               Text(
-                s.subtitle,
+                l10n.summarySubtitle(s),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: StadiaText.caption,
@@ -119,12 +127,16 @@ class _Details extends StatelessWidget {
                   Container(
                     width: 7,
                     height: 7,
-                    decoration:
-                        BoxDecoration(color: colour, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: colour,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    s.free == 0 ? 'Sold out' : '${formatCount(s.free)} free',
+                    s.free == 0
+                        ? l10n.soldOut
+                        : l10n.freeCount(f.count(s.free)),
                     style: StadiaText.caption.copyWith(
                       color: StadiaColors.textSecondary,
                       fontWeight: FontWeight.w600,
@@ -132,13 +144,16 @@ class _Details extends StatelessWidget {
                   ),
                 ],
               ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text.rich(
               TextSpan(
                 children: [
                   if (s.priceIsFrom)
-                    const TextSpan(text: 'from ', style: StadiaText.caption),
-                  TextSpan(text: formatPrice(s.price), style: StadiaText.number),
+                    TextSpan(
+                      text: '${l10n.priceFrom} ',
+                      style: StadiaText.caption,
+                    ),
+                  TextSpan(text: f.price(s.price), style: StadiaText.number),
                 ],
               ),
             ),

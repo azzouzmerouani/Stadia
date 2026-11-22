@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/match.dart';
 import '../../data/models/stadium.dart';
+import '../../l10n/l10n.dart';
 import '../../ui/buttons.dart';
 import '../../ui/format.dart';
 import '../../ui/glass.dart';
@@ -9,6 +10,8 @@ import '../../ui/icons.dart';
 import '../../ui/team_badge.dart';
 import '../../ui/tokens.dart';
 
+/// FPL-style fixture card: competition chip and price, the two crests
+/// either side of the kick-off pill, then "Choose seats".
 class MatchCard extends StatelessWidget {
   const MatchCard({
     super.key,
@@ -25,16 +28,18 @@ class MatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final f = StadiaFormat.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: StadiaColors.white.withValues(alpha: 0.06),
+          color: StadiaColors.purple100,
           borderRadius: BorderRadius.circular(StadiaRadii.lg),
-          border: Border.all(color: StadiaColors.hairline),
+          border: Border.all(color: StadiaColors.glassBorder),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -42,16 +47,16 @@ class MatchCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: GlassChip(
                         label: '${match.competition} · ${match.round}',
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text('from ', style: StadiaText.caption),
+                  Text('${l10n.priceFrom} ', style: StadiaText.caption),
                   Text(
-                    formatPrice(match.fromPrice(stadium)),
+                    f.price(match.fromPrice(stadium)),
                     style: StadiaText.numberSmall,
                   ),
                 ],
@@ -59,11 +64,11 @@ class MatchCard extends StatelessWidget {
               const Spacer(),
               Row(
                 children: [
-                  Expanded(child: _TeamColumn(team: match.home, label: 'Home')),
+                  Expanded(child: _TeamColumn(team: match.home)),
                   Column(
                     children: [
-                      Text(formatTime(match.kickoff), style: StadiaText.number),
-                      const SizedBox(height: 4),
+                      _KickoffPill(time: f.time(match.kickoff)),
+                      const SizedBox(height: 6),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -74,21 +79,21 @@ class MatchCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            formatMatchDate(match.kickoff),
+                            f.matchDate(match.kickoff),
                             style: StadiaText.caption,
                           ),
                         ],
                       ),
                     ],
                   ),
-                  Expanded(child: _TeamColumn(team: match.away, label: 'Away')),
+                  Expanded(child: _TeamColumn(team: match.away)),
                 ],
               ),
               const Spacer(),
               StadiaButton(
-                label: 'Choose seats',
+                label: l10n.chooseSeats,
                 trailing: StadiaGlyph.arrowRight,
-                height: 50,
+                height: 48,
                 onPressed: onChooseSeats,
               ),
             ],
@@ -99,18 +104,44 @@ class MatchCard extends StatelessWidget {
   }
 }
 
+/// White pill with the kick-off time, like FPL's fixture times.
+class _KickoffPill extends StatelessWidget {
+  const _KickoffPill({required this.time});
+
+  final String time;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: StadiaColors.white,
+        borderRadius: BorderRadius.circular(StadiaRadii.sm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        child: Text(
+          time,
+          style: StadiaText.number.copyWith(
+            color: StadiaColors.ink,
+            fontSize: 20,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TeamColumn extends StatelessWidget {
-  const _TeamColumn({required this.team, required this.label});
+  const _TeamColumn({required this.team});
 
   final Team team;
-  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TeamBadge(team: team, size: 44),
-        const SizedBox(height: 8),
+        TeamBadge(team: team, size: 50),
+        const SizedBox(height: 6),
         Text(
           team.name,
           maxLines: 1,

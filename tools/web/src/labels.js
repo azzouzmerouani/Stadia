@@ -20,6 +20,7 @@ export class Labels {
         const dot = document.createElement('span');
         const txt = document.createElement('span');
         dot.className = 'dot';
+        el.dir = 'auto'; // Arabic stand names, Latin block numbers
         el.append(dot, txt);
         el.style.opacity = '0';
         this.root.appendChild(el);

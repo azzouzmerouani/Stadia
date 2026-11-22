@@ -1,0 +1,136 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Stadia",
+
+  "loadingStadium": "Loading the stadium",
+  "preparingSeats": "Preparing stands, blocks and seats",
+  "somethingWentWrong": "Something went wrong",
+  "tryAgain": "Try again",
+  "seatCount": "{count, plural, =1{1 seat} other{{formatted} seats}}",
+  "@seatCount": {
+    "description": "Stadium capacity. formatted is count with digit grouping.",
+    "placeholders": {
+      "count": { "type": "int" },
+      "formatted": { "type": "String" }
+    }
+  },
+
+  "backToStadium": "Back to the stadium",
+  "osmCredit": "© OpenStreetMap contributors",
+  "osmCreditSemantics": "Map data © OpenStreetMap contributors",
+
+  "upcomingMatches": "Upcoming matches",
+  "priceFrom": "from",
+  "chooseSeats": "Choose seats",
+  "matchTitle": "{home} vs {away}",
+  "@matchTitle": {
+    "placeholders": { "home": { "type": "String" }, "away": { "type": "String" } }
+  },
+
+  "stepStand": "Stand",
+  "stepBlock": "Block",
+  "stepSeat": "Seat",
+  "stepBuy": "Buy",
+  "stepProgress": "Step {current} of {total}: {label}",
+  "@stepProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" },
+      "label": { "type": "String" }
+    }
+  },
+  "backToStep": "Back to {label}",
+  "@backToStep": { "placeholders": { "label": { "type": "String" } } },
+  "standSoldOut": "This stand is sold out",
+  "blockSoldOut": "This block is sold out, try another",
+  "seatTakenNotice": "That seat is taken, pick a free one",
+  "tapStandHint": "Tap a stand to zoom in",
+  "back": "Back",
+  "backToMatches": "Back to matches",
+  "legendFree": "Free",
+  "legendFewLeft": "Few left",
+  "legendSold": "Sold",
+  "levelStand": "Stand",
+  "levelBlock": "Block",
+  "levelYourSeat": "Your seat",
+  "soldOut": "Sold out",
+  "freeCount": "{count} free",
+  "@freeCount": { "placeholders": { "count": { "type": "String" } } },
+  "rowSeat": "Row {row} · Seat {seat}",
+  "@rowSeat": {
+    "placeholders": { "row": { "type": "int" }, "seat": { "type": "int" } }
+  },
+  "blockNumber": "Block {number}",
+  "@blockNumber": { "placeholders": { "number": { "type": "int" } } },
+  "tierLower": "Lower tier",
+  "tierUpper": "Upper tier",
+
+  "perTicket": "per ticket",
+  "inclVip": "incl. VIP",
+  "labelStand": "Stand",
+  "labelBlock": "Block",
+  "labelRow": "Row",
+  "labelSeat": "Seat",
+  "labelGate": "Gate",
+  "labelPaid": "Paid",
+  "vipUpgrade": "VIP upgrade",
+  "vipPerks": "Lounge access · Gate E fast lane",
+  "anotherSeat": "Another seat",
+  "buyTicket": "Buy ticket",
+  "checkoutTitle": "Checkout",
+  "testMode": "Test mode · no card is charged",
+  "backToSeat": "Back to seat",
+  "total": "Total",
+  "payWith": "Pay with",
+  "payAmount": "Pay {amount}",
+  "@payAmount": { "placeholders": { "amount": { "type": "String" } } },
+  "seatJustTaken": "That seat was just taken",
+  "seatTakenBody": "Someone booked it a moment before you. {money}",
+  "@seatTakenBody": { "placeholders": { "money": { "type": "String" } } },
+  "nothingCharged": "Nothing was charged.",
+  "willBeRefunded": "Payment {reference} will be refunded.",
+  "@willBeRefunded": { "placeholders": { "reference": { "type": "String" } } },
+  "pickAnotherSeat": "Pick another seat",
+  "viewFromSeat": "View from your seat",
+  "dragToLookAround": "Drag to look around",
+  "paymentCib": "CIB",
+  "paymentCibCaption": "Interbank card",
+  "paymentEdahabia": "Edahabia",
+  "paymentEdahabiaCaption": "Algérie Poste",
+  "errorSeatGone": "This seat does not exist any more.",
+  "errorPayment": "The payment did not go through. Nothing was charged.",
+
+  "youreIn": "You're in",
+  "paidRef": "Paid {amount} · Ref {reference}",
+  "@paidRef": {
+    "placeholders": { "amount": { "type": "String" }, "reference": { "type": "String" } }
+  },
+  "backToMap": "Back to the map",
+  "gatesOpenAt": "Gates open at {time}",
+  "@gatesOpenAt": { "placeholders": { "time": { "type": "String" } } },
+  "gatesLead": "That's {lead} before kick-off. {where}",
+  "@gatesLead": {
+    "placeholders": { "lead": { "type": "String" }, "where": { "type": "String" } }
+  },
+  "leadHours": "{count} h",
+  "@leadHours": { "placeholders": { "count": { "type": "int" } } },
+  "leadMinutes": "{count} min",
+  "@leadMinutes": { "placeholders": { "count": { "type": "int" } } },
+  "useGateVip": "Use Gate {gate}, the VIP fast lane. The lounge opens with the gates.",
+  "@useGateVip": { "placeholders": { "gate": { "type": "String" } } },
+  "useGateStand": "Use Gate {gate}, the entrance for the {stand}.",
+  "@useGateStand": {
+    "placeholders": { "gate": { "type": "String" }, "stand": { "type": "String" } }
+  },
+  "ticketNotFound": "Ticket not found",
+  "ticketNotFoundBody": "Tickets are kept on this device for the session. Book again from the map.",
+  "scanAt": "Scan at {gate}",
+  "@scanAt": { "placeholders": { "gate": { "type": "String" } } },
+  "ticketSemantics": "Ticket {id}",
+  "@ticketSemantics": { "placeholders": { "id": { "type": "String" } } },
+  "entryQr": "Entry QR code",
+
+  "matchdayAt": "Matchday at",
+  "skip": "Skip"
+}

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../ui/buttons.dart';
 import '../../ui/format.dart';
 import '../../ui/icons.dart';
@@ -82,9 +83,10 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
   Widget build(BuildContext context) {
     final viewBuilder = ref.watch(stadiumViewBuilderProvider);
     final stadium = ref.watch(stadiumProvider).value;
+    final l10n = context.l10n;
 
     return Scaffold(
-      backgroundColor: StadiaColors.navy900,
+      backgroundColor: StadiaColors.page,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -96,33 +98,45 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
+                padding: const EdgeInsetsDirectional.fromSTEB(
                   StadiaSpace.lg,
                   StadiaSpace.lg,
                   StadiaSpace.lg,
                   0,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const StadiaWordmark(),
-                    const SizedBox(height: 28),
-                    if (stadium != null) ...[
-                      const Text('MATCHDAY AT', style: StadiaText.overline),
-                      const SizedBox(height: 6),
-                      Text(stadium.name, style: StadiaText.display),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${stadium.city} · ${formatCount(stadium.capacity)} seats',
-                        style: StadiaText.body
-                            .copyWith(color: StadiaColors.textSecondary),
-                      ),
-                    ],
-                  ],
-                )
-                    .animate()
-                    .fadeIn(duration: StadiaMotion.slow)
-                    .slideY(begin: 0.08, end: 0, curve: StadiaMotion.emphasized),
+                child:
+                    Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const StadiaWordmark(),
+                            const SizedBox(height: 28),
+                            if (stadium != null) ...[
+                              Text(
+                                l10n.matchdayAt,
+                                style: StadiaText.overline.copyWith(
+                                  color: StadiaColors.green,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(stadium.name, style: StadiaText.display),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${stadium.city} · '
+                                '${l10n.seatCount(stadium.capacity, StadiaFormat.of(context).count(stadium.capacity))}',
+                                style: StadiaText.body.copyWith(
+                                  color: StadiaColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        )
+                        .animate()
+                        .fadeIn(duration: StadiaMotion.slow)
+                        .slideY(
+                          begin: 0.08,
+                          end: 0,
+                          curve: StadiaMotion.emphasized,
+                        ),
               ),
             ),
           ),
@@ -132,13 +146,13 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
               duration: StadiaMotion.slow,
               child: _ready
                   ? const SizedBox.shrink()
-                  : const Center(
+                  : Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          TrackLoader(width: 72),
-                          SizedBox(height: 16),
-                          Text('Loading the stadium', style: StadiaText.caption),
+                          const TrackLoader(width: 72),
+                          const SizedBox(height: 16),
+                          Text(l10n.loadingStadium, style: StadiaText.caption),
                         ],
                       ),
                     ),
@@ -153,7 +167,7 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
               minimum: const EdgeInsets.only(bottom: StadiaSpace.lg),
               child: Center(
                 child: StadiaButton(
-                  label: 'Skip',
+                  label: l10n.skip,
                   variant: StadiaButtonVariant.glass,
                   expand: false,
                   height: 48,

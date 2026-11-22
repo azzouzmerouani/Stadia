@@ -4,16 +4,9 @@ import '../../data/models/availability.dart';
 import '../../data/models/match.dart';
 import '../../data/models/stadium.dart';
 
-/// The four steps shown in the progress bar.
-enum BookingStep {
-  stand('Stand'),
-  block('Block'),
-  seat('Seat'),
-  buy('Buy');
-
-  const BookingStep(this.label);
-  final String label;
-}
+/// The four steps shown in the progress bar (labels live in the l10n
+/// files: stepStand … stepBuy).
+enum BookingStep { stand, block, seat, buy }
 
 /// Why the last event was rejected (shown as a hint, never blocks the UI).
 enum BookingNotice { standSoldOut, blockSoldOut, seatTaken }
@@ -43,15 +36,14 @@ class BookingState {
     SeatRef? Function()? seat,
     bool? vip,
     BookingNotice? notice,
-  }) =>
-      BookingState(
-        step: step ?? this.step,
-        standId: standId != null ? standId() : this.standId,
-        blockId: blockId != null ? blockId() : this.blockId,
-        seat: seat != null ? seat() : this.seat,
-        vip: vip ?? this.vip,
-        notice: notice,
-      );
+  }) => BookingState(
+    step: step ?? this.step,
+    standId: standId != null ? standId() : this.standId,
+    blockId: blockId != null ? blockId() : this.blockId,
+    seat: seat != null ? seat() : this.seat,
+    vip: vip ?? this.vip,
+    notice: notice,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -172,15 +164,18 @@ class BookingMachine {
   }
 
   BookingState _back(BookingState s) => switch (s.step) {
-        BookingStep.buy =>
-          s._with(step: BookingStep.seat, seat: () => null, vip: false),
-        BookingStep.seat => BookingState(
-            step: BookingStep.block,
-            standId: s.standId,
-          ),
-        BookingStep.block => const BookingState(),
-        BookingStep.stand => s,
-      };
+    BookingStep.buy => s._with(
+      step: BookingStep.seat,
+      seat: () => null,
+      vip: false,
+    ),
+    BookingStep.seat => BookingState(
+      step: BookingStep.block,
+      standId: s.standId,
+    ),
+    BookingStep.block => const BookingState(),
+    BookingStep.stand => s,
+  };
 
   BookingState _jumpTo(BookingState s, BookingStep target) {
     var next = s;
@@ -192,15 +187,17 @@ class BookingMachine {
 
   // ------------------------------------------------------------ read model
 
-  /// What the floating card describes: the most specific selection.
+  /// What the floating card describes: the most specific selection. The
+  /// UI words it ("Block 104", "القسم 104") from these fields.
   SelectionSummary? summarize(BookingState s, FootballMatch match) {
     if (s.seat case final seat?) {
       final block = stadium.blockById(seat.blockId)!;
       final stand = stadium.standById(block.standId)!;
       return SelectionSummary(
         level: SelectionLevel.seat,
-        title: 'Row ${seat.row} · Seat ${seat.seat}',
-        subtitle: '${stand.name} · Block ${block.number}',
+        stand: stand,
+        block: block,
+        seat: seat,
         free: 1,
         capacity: 1,
         price: match.priceFor(block),
@@ -211,8 +208,8 @@ class BookingMachine {
       final stand = stadium.standById(block.standId)!;
       return SelectionSummary(
         level: SelectionLevel.block,
-        title: 'Block ${block.number}',
-        subtitle: '${stand.name} · ${block.tier == 1 ? 'Lower' : 'Upper'} tier',
+        stand: stand,
+        block: block,
         free: availability.freeInBlock(block.id),
         capacity: block.capacity,
         price: match.priceFor(block),
@@ -220,13 +217,13 @@ class BookingMachine {
     }
     if (s.standId case final standId?) {
       final stand = stadium.standById(standId)!;
-      final open =
-          stand.blocks.where((b) => availability.freeInBlock(b.id) > 0);
+      final open = stand.blocks.where(
+        (b) => availability.freeInBlock(b.id) > 0,
+      );
       final prices = (open.isEmpty ? stand.blocks : open).map(match.priceFor);
       return SelectionSummary(
         level: SelectionLevel.stand,
-        title: stand.name,
-        subtitle: stand.nickname,
+        stand: stand,
         free: availability.freeInStand(stand),
         capacity: stand.capacity,
         price: prices.reduce((a, b) => a < b ? a : b),
@@ -243,8 +240,9 @@ enum SelectionLevel { stand, block, seat }
 class SelectionSummary {
   const SelectionSummary({
     required this.level,
-    required this.title,
-    required this.subtitle,
+    required this.stand,
+    this.block,
+    this.seat,
     required this.free,
     required this.capacity,
     required this.price,
@@ -252,8 +250,13 @@ class SelectionSummary {
   });
 
   final SelectionLevel level;
-  final String title;
-  final String subtitle;
+  final Stand stand;
+
+  /// Set from the block level down.
+  final Block? block;
+
+  /// Set at the seat level.
+  final SeatRef? seat;
   final int free;
   final int capacity;
   final int price;

@@ -4,11 +4,13 @@ import 'package:stadia/data/models/match.dart';
 import 'package:stadia/data/models/stadium.dart';
 import 'package:stadia/data/repositories/local_stadium_repository.dart';
 import 'package:stadia/features/matches/match_card.dart';
+import 'package:stadia/l10n/l10n.dart';
 import 'package:stadia/ui/theme.dart';
 
 void main() {
-  testWidgets('match card shows teams, time, price and Choose seats',
-      (tester) async {
+  testWidgets('match card shows teams, time, price and Choose seats', (
+    tester,
+  ) async {
     final repo = LocalStadiumRepository(latency: Duration.zero);
     Stadium? stadium;
     List<FootballMatch>? matches;
@@ -21,6 +23,9 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildStadiaTheme(),
+        locale: const Locale('en'),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Scaffold(
           body: Center(
             child: SizedBox(

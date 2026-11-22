@@ -12,6 +12,7 @@ import 'package:stadia/features/seat_picker/seat_picker_screen.dart';
 import 'package:stadia/features/seat_picker/seat_sheet_launcher.dart';
 import 'package:stadia/features/stadium3d/stadium_scene_controller.dart';
 import 'package:stadia/features/stadium3d/stadium_view.dart';
+import 'package:stadia/l10n/l10n.dart';
 import 'package:stadia/ui/theme.dart';
 
 /// Real JSON data, but a hand-made availability: E_101 sold out and the
@@ -32,8 +33,8 @@ class _FakeRepo extends LocalStadiumRepository {
             sold: b.id == 'E_101'
                 ? {for (var i = 0; i < b.capacity; i++) i}
                 : b.id == 'E_104'
-                    ? {0, 1, 2}
-                    : const {},
+                ? {0, 1, 2}
+                : const {},
           ),
       },
     );
@@ -53,20 +54,29 @@ void main() {
       ProviderScope(
         overrides: [
           stadiumRepositoryProvider.overrideWithValue(_FakeRepo()),
-          stadiumViewBuilderProvider.overrideWithValue((context, controller, mode) {
+          stadiumViewBuilderProvider.overrideWithValue((
+            context,
+            controller,
+            mode,
+          ) {
             scene = controller;
             return const SizedBox.expand(key: Key('fake-3d'));
           }),
-          seatSheetLauncherProvider.overrideWithValue(
-            (context, {required matchId, required scene}) {
-              sheetOpened++;
-              sheet = Completer<String?>();
-              return sheet.future;
-            },
-          ),
+          seatSheetLauncherProvider.overrideWithValue((
+            context, {
+            required matchId,
+            required scene,
+          }) {
+            sheetOpened++;
+            sheet = Completer<String?>();
+            return sheet.future;
+          }),
         ],
         child: MaterialApp(
           theme: buildStadiaTheme(),
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: const SeatPickerScreen(matchId: matchId),
         ),
       ),
@@ -87,8 +97,9 @@ void main() {
   Map<String, Object?> lastOf(String type) =>
       scene.log.lastWhere((m) => m['type'] == type);
 
-  testWidgets('drives the booking state machine from 3D selections',
-      (tester) async {
+  testWidgets('drives the booking state machine from 3D selections', (
+    tester,
+  ) async {
     final container = await pumpPicker(tester);
     BookingState state() => container.read(bookingControllerProvider(matchId));
 
@@ -101,7 +112,9 @@ void main() {
     expect(lastOf('availability'), isNotNull);
     expect(lastOf('setStep')['step'], 'stand');
     expect(
-      scene.log.where((m) => m['type'] == 'availability').map((m) => m['level']),
+      scene.log
+          .where((m) => m['type'] == 'availability')
+          .map((m) => m['level']),
       containsAll(['stand', 'block']),
     );
 
@@ -127,11 +140,17 @@ void main() {
     expect(seats['sold'], [0, 1, 2]);
 
     // Taken seat, then a free one.
-    await fromScene(tester, '{"type":"select","level":"seat","id":"E_104_R1_S2"}');
+    await fromScene(
+      tester,
+      '{"type":"select","level":"seat","id":"E_104_R1_S2"}',
+    );
     expect(state().step, BookingStep.seat);
     expect(find.text('That seat is taken, pick a free one'), findsOneWidget);
 
-    await fromScene(tester, '{"type":"select","level":"seat","id":"E_104_R12_S7"}');
+    await fromScene(
+      tester,
+      '{"type":"select","level":"seat","id":"E_104_R12_S7"}',
+    );
     expect(state().step, BookingStep.buy);
     expect(sheetOpened, 1);
     expect(find.text('Row 12 · Seat 7'), findsOneWidget);
@@ -152,7 +171,7 @@ void main() {
     expect(find.text('East Stand'), findsOneWidget);
 
     // Progress bar: jump back to Stand.
-    await tester.tap(find.text('Stand'));
+    await tester.tap(find.byKey(const ValueKey('step-0')));
     await tester.pump(const Duration(milliseconds: 700));
     expect(state(), const BookingState());
     expect(lastOf('setStep')['step'], 'stand');

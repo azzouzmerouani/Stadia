@@ -6,7 +6,12 @@ import 'spring_press.dart';
 import 'stadia_loader.dart';
 import 'tokens.dart';
 
-enum StadiaButtonVariant { primary, glass, outline }
+/// FPL button styles, all pills:
+/// * [primary] – white, purple text (the main action on purple),
+/// * [accent] – green to cyan sweep, purple text (commit: Buy, Pay),
+/// * [glass] – white wash, white text (over the 3D scene),
+/// * [outline] – 1px white rim, white text (secondary).
+enum StadiaButtonVariant { primary, accent, glass, outline }
 
 class StadiaButton extends StatelessWidget {
   const StadiaButton({
@@ -18,7 +23,7 @@ class StadiaButton extends StatelessWidget {
     this.trailing,
     this.loading = false,
     this.expand = true,
-    this.height = 54,
+    this.height = 50,
   });
 
   final String label;
@@ -33,9 +38,11 @@ class StadiaButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null && !loading;
-    final fg = variant == StadiaButtonVariant.primary
-        ? StadiaColors.navy900
-        : StadiaColors.white;
+    final fg = switch (variant) {
+      StadiaButtonVariant.primary ||
+      StadiaButtonVariant.accent => StadiaColors.ink,
+      _ => StadiaColors.white,
+    };
 
     final content = Row(
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
@@ -55,7 +62,8 @@ class StadiaButton extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: StadiaText.label.copyWith(
                 color: fg,
-                fontSize: 15.5,
+                fontSize: 15,
+                height: 1.2,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -77,26 +85,35 @@ class StadiaButton extends StatelessWidget {
       ),
     );
 
+    final pill = BorderRadius.circular(StadiaRadii.pill);
     final Widget surface = switch (variant) {
       StadiaButtonVariant.primary => DecoratedBox(
-          decoration: BoxDecoration(
-            color: StadiaColors.white,
-            borderRadius: BorderRadius.circular(StadiaRadii.md + 2),
-          ),
-          child: padded,
+        decoration: BoxDecoration(
+          color: StadiaColors.white,
+          borderRadius: pill,
         ),
+        child: padded,
+      ),
+      StadiaButtonVariant.accent => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: StadiaGradients.go,
+          borderRadius: pill,
+        ),
+        child: padded,
+      ),
       StadiaButtonVariant.glass => GlassSurface(
-          radius: StadiaRadii.md + 2,
-          tone: GlassTone.light,
-          child: padded,
-        ),
+        radius: StadiaRadii.pill,
+        tone: GlassTone.light,
+        borderColor: Colors.transparent,
+        child: padded,
+      ),
       StadiaButtonVariant.outline => DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(StadiaRadii.md + 2),
-            border: Border.all(color: StadiaColors.glassBorder),
-          ),
-          child: padded,
+        decoration: BoxDecoration(
+          borderRadius: pill,
+          border: Border.all(color: StadiaColors.white),
         ),
+        child: padded,
+      ),
     };
 
     return AnimatedOpacity(

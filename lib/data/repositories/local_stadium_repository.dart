@@ -12,17 +12,25 @@ import 'stadium_repository.dart';
 
 /// Mock backend: reads `assets/data/*.json`, generates a deterministic
 /// sold/free pattern per match and keeps bookings in memory.
+///
+/// Display text in the JSON is either a plain string or a translation map
+/// (`{"en": "MC Oran", "ar": "مولودية وهران"}`); the repository returns it in
+/// [languageCode], as a real API would for the request's Accept-Language.
 class LocalStadiumRepository implements StadiumRepository {
   LocalStadiumRepository({
     AssetBundle? bundle,
     this.stadiumAsset = 'assets/data/stadium.json',
     this.matchesAsset = 'assets/data/matches.json',
     this.latency = const Duration(milliseconds: 250),
+    this.languageCode = 'en',
   }) : _bundle = bundle ?? rootBundle;
 
   final AssetBundle _bundle;
   final String stadiumAsset;
   final String matchesAsset;
+
+  /// Language of names, cities, competitions… (`ar` in the app).
+  final String languageCode;
 
   /// Simulated network latency so loading states are exercised.
   final Duration latency;
@@ -35,7 +43,10 @@ class LocalStadiumRepository implements StadiumRepository {
   Future<Stadium> fetchStadium() async {
     if (_stadium != null) return _stadium!;
     final raw = jsonDecode(await _bundle.loadString(stadiumAsset));
-    return _stadium = parseStadium(raw as Map<String, dynamic>);
+    return _stadium = parseStadium(
+      raw as Map<String, dynamic>,
+      language: languageCode,
+    );
   }
 
   @override
@@ -79,9 +90,11 @@ class LocalStadiumRepository implements StadiumRepository {
     _availability[match.id] = availability.withSeatSold(block, seat);
 
     final stand = stadium.standById(block.standId)!;
-    final gate = stadium.gateById(vip ? 'E' : stand.gateId) ??
+    final gate =
+        stadium.gateById(vip ? 'E' : stand.gateId) ??
         stadium.gateById(stand.gateId)!;
-    final id = 'STD-${receipt.paidAt.millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
+    final id =
+        'STD-${receipt.paidAt.millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
     return Ticket(
       id: id,
       match: match,
@@ -104,12 +117,28 @@ class LocalStadiumRepository implements StadiumRepository {
   Future<List<FootballMatch>> _loadMatches() async {
     if (_matches != null) return _matches!;
     final raw = jsonDecode(await _bundle.loadString(matchesAsset));
-    return _matches = parseMatches(raw as Map<String, dynamic>);
+    return _matches = parseMatches(
+      raw as Map<String, dynamic>,
+      language: languageCode,
+    );
   }
 
   // ---------------------------------------------------------------- parsing
 
-  static Stadium parseStadium(Map<String, dynamic> json) {
+  /// A display string: plain, or `{"en": …, "ar": …}` resolved to
+  /// [language] (falling back to English, then to any translation).
+  static String text(Object? value, String language) => switch (value) {
+    final String s => s,
+    final Map<String, dynamic> m =>
+      (m[language] ?? m['en'] ?? m.values.first) as String,
+    _ => throw FormatException('Expected text, got $value'),
+  };
+
+  static Stadium parseStadium(
+    Map<String, dynamic> json, {
+    String language = 'en',
+  }) {
+    String t(Object? v) => text(v, language);
     final layout = json['layout'] as Map<String, dynamic>;
     final seatsPerRow = layout['seatsPerRow'] as int;
     final tiers = [
@@ -129,14 +158,15 @@ class LocalStadiumRepository implements StadiumRepository {
     final stands = <Stand>[];
     for (final s in json['stands'] as List) {
       final id = s['id'] as String;
-      final prices = (s['prices'] as Map<String, dynamic>)
-          .map((k, v) => MapEntry(int.parse(k), v as int));
+      final prices = (s['prices'] as Map<String, dynamic>).map(
+        (k, v) => MapEntry(int.parse(k), v as int),
+      );
       final perTier = s['blocksPerTier'] as int;
       stands.add(
         Stand(
           id: id,
-          name: s['name'] as String,
-          nickname: s['nickname'] as String,
+          name: t(s['name']),
+          nickname: t(s['nickname']),
           gateId: s['gate'] as String,
           hasVip: s['vip'] as bool? ?? false,
           blocks: [
@@ -157,8 +187,8 @@ class LocalStadiumRepository implements StadiumRepository {
 
     return Stadium(
       id: json['id'] as String,
-      name: json['name'] as String,
-      city: json['city'] as String,
+      name: t(json['name']),
+      city: t(json['city']),
       location: centre,
       stands: stands,
       tiers: tiers,
@@ -169,7 +199,7 @@ class LocalStadiumRepository implements StadiumRepository {
         for (final g in json['gates'] as List)
           Gate(
             id: g['id'] as String,
-            name: g['name'] as String,
+            name: t(g['name']),
             position: centre.offsetMetres(
               north: (g['north'] as num).toDouble(),
               east: (g['east'] as num).toDouble(),
@@ -179,16 +209,21 @@ class LocalStadiumRepository implements StadiumRepository {
     );
   }
 
-  static List<FootballMatch> parseMatches(Map<String, dynamic> json) {
+  static List<FootballMatch> parseMatches(
+    Map<String, dynamic> json, {
+    String language = 'en',
+  }) {
+    String t(Object? v) => text(v, language);
     final teams = {
-      for (final t in json['teams'] as List)
-        t['id'] as String: Team(
-          id: t['id'] as String,
-          name: t['name'] as String,
-          shortName: t['short'] as String,
-          city: t['city'] as String,
-          primaryColor: _parseHex(t['primary'] as String),
-          secondaryColor: _parseHex(t['secondary'] as String),
+      for (final team in json['teams'] as List)
+        team['id'] as String: Team(
+          id: team['id'] as String,
+          name: t(team['name']),
+          shortName: team['short'] as String,
+          city: t(team['city']),
+          primaryColor: _parseHex(team['primary'] as String),
+          secondaryColor: _parseHex(team['secondary'] as String),
+          logo: team['logo'] as String?,
         ),
     };
     final matches = [
@@ -199,8 +234,8 @@ class LocalStadiumRepository implements StadiumRepository {
           home: teams[m['home']]!,
           away: teams[m['away']]!,
           kickoff: DateTime.parse(m['kickoff'] as String),
-          competition: m['competition'] as String,
-          round: m['round'] as String,
+          competition: t(m['competition']),
+          round: t(m['round']),
           priceMultiplier: (m['priceMultiplier'] as num).toDouble(),
           demand: (m['demand'] as num).toDouble(),
         ),
@@ -231,7 +266,10 @@ class LocalStadiumRepository implements StadiumRepository {
         final rnd = math.Random(_seed('${match.id}/${block.id}'));
         final tierBias = block.tier == 1 ? 0.08 : -0.1;
         var fill =
-            (match.demand + standBias + tierBias + (rnd.nextDouble() - 0.5) * 0.3)
+            (match.demand +
+                    standBias +
+                    tierBias +
+                    (rnd.nextDouble() - 0.5) * 0.3)
                 .clamp(0.05, 1.0);
         // Occasionally a block is completely gone.
         if (match.demand > 0.6 && rnd.nextDouble() < 0.12) fill = 1.0;

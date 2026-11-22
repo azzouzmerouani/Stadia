@@ -2,14 +2,10 @@
 /// is wired today and [ChargilyPaymentService] is the production slot.
 library;
 
+/// Display names live in the l10n files (paymentCib, paymentEdahabia…).
 enum PaymentMethod {
-  cib('CIB', 'Interbank card'),
-  edahabia('Edahabia', 'Algérie Poste');
-
-  const PaymentMethod(this.label, this.caption);
-
-  final String label;
-  final String caption;
+  cib,
+  edahabia;
 
   /// Value Chargily Pay expects in `payment_method`.
   String get chargilyValue => name;
@@ -77,8 +73,7 @@ class MockPaymentService implements PaymentService {
   Future<PaymentResult> pay(PaymentRequest request) async {
     await Future<void>.delayed(delay);
     final stamp = DateTime.now();
-    final suffix =
-        stamp.millisecondsSinceEpoch.toRadixString(36).toUpperCase();
+    final suffix = stamp.millisecondsSinceEpoch.toRadixString(36).toUpperCase();
     return PaymentSucceeded(
       PaymentReceipt(
         reference: 'MOCK-${request.method.name.toUpperCase()}-$suffix',
