@@ -263,6 +263,7 @@ The source of truth is the doc comment in
 | View from the seat | Live first-person view of the procedural model | A surveyed model; optionally 360° captures per block |
 | Team crests | Real club crests bundled for the demo (club trademarks), drawn shield as fallback | Written permission from each club (or the LFP), served from the CDN by `team.logo` |
 | Stadium model | Procedural, approximate | A surveyed model of the real ground (same naming convention, same script output contract) |
+| Surroundings | Stylised night-time Bir El Djir from a fixed seed (not the real streets) | Real footprints and heights from OSM (ODbL, attributed) or a city model, cut to a few km and baked the same way |
 | Localisation | Arabic (Algeria, default) and English; data names as `{en, ar}` maps | French; native-speaker review; server-side names per `Accept-Language` |
 | Ops | None | Crash reporting, analytics, remote config for prices and gates opening time |
 
