@@ -27,8 +27,8 @@ class MapScreen extends ConsumerWidget {
       body: switch (stadium) {
         AsyncData(:final value) => _StadiumMap(stadium: value),
         AsyncError(:final error) => Center(
-            child: Text('$error', style: StadiaText.body),
-          ),
+          child: Text('$error', style: StadiaText.body),
+        ),
         _ => const Center(child: TrackLoader(width: 96)),
       },
     );
@@ -49,10 +49,20 @@ class _StadiumMapState extends State<_StadiumMap>
   static const _focusZoom = 15.6;
 
   final _map = MapController();
-  late final AnimationController _fly = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  );
+
+  /// Created eagerly: a lazy `late final` would first be built inside
+  /// dispose() when the user never re-centred, and creating a ticker on a
+  /// deactivated element throws.
+  late final AnimationController _fly;
+
+  @override
+  void initState() {
+    super.initState();
+    _fly = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+  }
 
   LatLng get _stadiumPoint =>
       LatLng(widget.stadium.location.lat, widget.stadium.location.lng);
@@ -69,11 +79,11 @@ class _StadiumMapState extends State<_StadiumMap>
   }
 
   CameraFit _focusFit(BuildContext context) => CameraFit.coordinates(
-        coordinates: [_stadiumPoint],
-        padding: _focusPadding(context),
-        maxZoom: _focusZoom,
-        minZoom: _focusZoom,
-      );
+    coordinates: [_stadiumPoint],
+    padding: _focusPadding(context),
+    maxZoom: _focusZoom,
+    minZoom: _focusZoom,
+  );
 
   void _recenter() {
     final camera = _map.camera;

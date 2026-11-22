@@ -1,3 +1,279 @@
-# stadia
+# Stadia
 
-A new Flutter project.
+Stadium ticket booking for iOS and Android with a 3D seat picker. You find the
+match on a map, pick your stand, block and seat on an interactive 3D model of
+the stadium, see the view from that seat, pay, and get a ticket with an entry
+QR code.
+
+The demo stadium is a ~40,000-seat Algerian ground (Stade Miloud Hadefi, Oran)
+with Ligue 1 and Algerian Cup fixtures between Algerian clubs. All data is
+mocked behind repository and payment interfaces (see
+[Going to production](#going-to-production)).
+
+| Intro | Map | Stand | Block |
+|---|---|---|---|
+| ![Intro](docs/screenshots/1-intro.jpg) | ![Map](docs/screenshots/2-map.jpg) | ![Stand](docs/screenshots/3-stand.jpg) | ![Block](docs/screenshots/4-block.jpg) |
+
+| Seat sheet | Checkout | Ticket |
+|---|---|---|
+| ![Seat sheet](docs/screenshots/5-seat-sheet.jpg) | ![Checkout](docs/screenshots/6-checkout.jpg) | ![Ticket](docs/screenshots/7-ticket.jpg) |
+
+## The flow
+
+1. **Splash**: "Loading the stadium" while the 3D assets server starts.
+2. **3D intro**: an orbit around the floodlit stadium, with Skip.
+3. **Map**: OpenStreetMap (navy-tinted tiles, attribution shown) centred on
+   the stadium, with the gates and a glass "Upcoming matches" card.
+4. **3D seat picker**: Stand → Block → Seat → Buy. Each tap flies the camera
+   in. Blocks and seats are coloured by availability (free / few left /
+   sold). A floating glass card shows the selection, free seats and price.
+5. **Seat sheet**: "View from your seat" (rendered from the seat's eye
+   height, drag to look around), block / row / seat / gate / price, the VIP
+   upgrade (+3 000 DA, lounge, Gate E), "Another seat" and "Buy ticket".
+6. **Checkout**: order lines, CIB or Edahabia, Pay (mock).
+7. **"You're in"**: a notched ticket with the match, seat, gate, entry QR and
+   the gates-open time.
+
+## Quick start
+
+Requirements: Flutter 3.44 (Dart 3.12), Xcode with an iOS simulator and/or
+Android Studio with an emulator. Node and Blender are only needed to rebuild
+the 3D viewer or the model. Both are already built and committed under
+`assets/`.
+
+```bash
+flutter pub get
+```
+
+```bash
+flutter run
+```
+
+Pick a device with `-d`, e.g. `flutter run -d "iPhone 17 Pro"` or
+`flutter run -d emulator-5554`.
+
+Show the 3D overlay (fps, draw calls) and stream `stats` messages:
+
+```bash
+flutter run --dart-define=STADIA_3D_DEBUG=true
+```
+
+Checks:
+
+```bash
+flutter analyze
+```
+
+```bash
+flutter test
+```
+
+The tests cover:
+
+- the booking state machine (unit tests);
+- the seat picker driven by injected 3D events;
+- the seat sheet → checkout → ticket flow, end to end;
+- the ticket screen;
+- the checkout service (charge, VIP, declined, cancelled, seat taken before
+  paying);
+- the loopback asset server, the intro screen and the map screen;
+- the mock repository.
+
+## Regenerating the 3D model
+
+`assets/data/stadium.json` is the single source of truth for the layout:
+stands, tiers, blocks, rows, seats per row, gates and prices. The Blender
+script builds the whole bowl from it. Because of that, mesh names
+(`Block_E_105`) always match the app's ids (`E_105`).
+
+```bash
+blender -b --factory-startup -P tools/blender/build_stadium.py -- --config assets/data/stadium.json --out assets/3d/stadium.glb
+```
+
+Options after `--`: `--no-draco` (bigger, easier to inspect) and
+`--blend out.blend` (also save the scene). Install Blender with
+`brew install --cask blender` on macOS. The script was written against
+Blender 4.5 LTS.
+
+What it produces (Draco-compressed, about 350 KB, budget 5 MB):
+
+- pitch and markings, athletics track;
+- 4 two-tier stands with 56 blocks and merged seat rows;
+- red VIP seating in the West Stand, roof ring, floodlights and concourse.
+
+Lighting is baked into vertex colours, so the viewer needs no lights or
+shadows. Selectable meshes are named `Stand_<S>`, `Block_<S>_<nnn>` and
+`Seats_<S>_<nnn>`, with seat-grid metadata in the node extras. The header of
+`build_stadium.py` documents the axes and naming.
+
+## Rebuilding the 3D viewer
+
+The viewer is plain Three.js (r0.187), bundled offline into
+`assets/web/stadium.js`. The Draco decoder is copied to `assets/web/draco/`.
+The bundle targets Chrome 74 (the WebView Android 10 ships with) and Safari
+15. `src/compat.js` fills the two runtime APIs three needs that old WebViews
+lack (`WeakRef`, `FinalizationRegistry`).
+
+```bash
+cd tools/web && npm ci && npm run build
+```
+
+To work on it in a desktop browser without Flutter:
+
+```bash
+cd tools/web && npm run serve
+```
+
+Then open `http://localhost:5175/index.html?mode=picker&debug`. With
+`debug` and no Flutter host, a dev harness plays the app's side: it sends
+availability and steps and answers taps. Esc goes back, V renders the view
+from the selected seat, I simulates a tall bottom sheet. `mode=intro` plays
+the intro; `&spin` auto-rotates and renders every frame (for fps checks).
+
+## Architecture
+
+```text
+lib/
+  app/            MaterialApp.router, go_router routes (fade transitions)
+  ui/             design system: tokens, glass surface, spring-press buttons,
+                  hand-drawn glyphs (no icon packs), loaders, team crests
+  data/
+    models/       Stadium, Stand, Block, SeatRef, FootballMatch, Ticket, ...
+    repositories/ StadiumRepository (interface) + LocalStadiumRepository (JSON)
+    payment/      PaymentService (interface) + Mock + Chargily slot
+    providers.dart Riverpod wiring (swap implementations here)
+  features/
+    splash/       boot tasks (data + 3D server) before the intro
+    stadium3d/    loopback asset server, WebView, scene controller, protocol,
+                  intro screen
+    map/          flutter_map + OSM, gates, stadium marker
+    matches/      upcoming matches card
+    seat_picker/  BookingMachine (pure), BookingController, picker screen,
+                  seat sheet
+    ticket/       Checkout service, ticket screen, notched ticket card
+tools/
+  blender/        build_stadium.py (headless model generator)
+  web/            Three.js viewer sources + esbuild bundling + dev server
+assets/
+  data/           stadium.json, matches.json
+  3d/             stadium.glb
+  web/            index.html, stadium.js, draco/
+```
+
+**State.** Riverpod 3:
+
+- `bookingContextProvider(matchId)` loads stadium, match and availability
+  together.
+- `bookingControllerProvider(matchId)` holds the selection and feeds every
+  event through `BookingMachine.reduce`. The machine is a pure, synchronous
+  state machine; invalid taps return the same state with a notice and never
+  throw.
+- `ticketWalletProvider` keeps the issued tickets.
+
+**3D, in a WebView.** At startup a `dart:io` HTTP server on `127.0.0.1`
+(random port) serves `assets/web` and `assets/3d` from the Flutter asset
+bundle. `webview_flutter` loads `http://127.0.0.1:<port>/index.html`. Why not
+`file://`: Android WebView blocks fetch and WASM from file URLs, and the
+Draco decoder runs in a Worker that needs a real origin. Restrictions:
+
+- the server answers GET/HEAD only;
+- it maps paths into those two asset folders only and rejects `..`;
+- it refuses foreign Host headers;
+- the WebView cannot navigate off the loopback origin.
+
+Cleartext HTTP is allowed only for 127.0.0.1/localhost: Android
+`network_security_config.xml`, iOS `NSAllowsLocalNetworking`.
+
+**Rendering budget.** All of these target 60 fps on mid-range Android:
+
+- unlit `MeshBasicMaterial` with baked vertex colours;
+- no shadows and no post-processing;
+- pixel ratio ≤ 2;
+- static geometry merged into a few draw calls;
+- individual seats only for the block being picked (one `InstancedMesh`);
+- frames rendered only when something changed.
+
+**Camera.** Each step has a framed view: overview, stand, block, seat. The
+Flutter UI reports how much of the screen its cards cover (`insets`). The
+scene shifts the projection centre and fits the target into the visible gap,
+so the seat always sits between the top card and the bottom sheet.
+
+### Bridge protocol
+
+Flutter → JS: `window.stadia.receive(json)`. JS → Flutter: the
+`StadiaBridge` JavaScript channel. Messages sent before the page reports
+`ready` are queued, and only the latest of each kind is kept.
+
+| Direction | Message | Meaning |
+|---|---|---|
+| → JS | `init {mode}` | `intro` or `picker` |
+| → JS | `setStep {step, stand?, block?, seat?}` | current booking step; the camera flies there |
+| → JS | `availability {level: stand\|block, items}` | free ratio 0..1 per stand/block |
+| → JS | `availability {level: seat, block, rows, seats, sold[]}` | sold seat indexes (row-major) |
+| → JS | `labels {items}` | stand names for in-scene labels |
+| → JS | `insets {top, bottom}` | screen px covered by Flutter UI |
+| → JS | `renderView {seat, requestId}` | render the view from a seat |
+| → JS | `highlight {id}`, `skipIntro` | |
+| → Flutter | `ready {timings}` | scene loaded |
+| → Flutter | `select {level, id}` | a stand / block / seat was tapped |
+| → Flutter | `view {requestId, dataUrl}` | JPEG of the seat view |
+| → Flutter | `introDone`, `error {message}`, `stats {fps, calls, triangles}` | |
+
+The source of truth is the doc comment in
+`lib/features/stadium3d/stadium_protocol.dart`.
+
+## Going to production
+
+### Mocked vs production
+
+| Area | Now (mock) | Production needs |
+|---|---|---|
+| Stadium, matches | Bundled JSON via `LocalStadiumRepository` | `SupabaseStadiumRepository` implementing `StadiumRepository` (schema below) |
+| Availability | Generated once per match from a demand factor, kept in memory | Live sold/held seats from the backend, realtime updates (Supabase Realtime on `tickets`) |
+| Seat locking | Re-check right before paying; no hold | Server-side hold with a TTL (`hold_seat` RPC) before redirecting to payment, released on failure/expiry; one live ticket per seat enforced by a unique index |
+| Payment | `MockPaymentService` always succeeds after 1.4 s | `ChargilyPaymentService`: backend creates the Chargily Pay checkout (CIB/Edahabia), app opens `checkout_url`, backend webhook verifies the `signature` HMAC and issues the ticket. The secret key lives only on the backend |
+| Refunds | Message only ("will be refunded") | Refund flow through Chargily and backend order states |
+| Ticket issuing | `issueTicket` on the device | Issued by the backend after the webhook, never by the app |
+| QR code | Plain `STADIA:1:<ticket>:<match>:<seat>:<gate>` | Server-signed payload (e.g. Ed25519 with key id and expiry); gate scanners verify offline with the public key and record scans for single entry |
+| Wallet | In memory, lost on restart | Persisted per account, available offline (encrypted local cache) |
+| Accounts | None | Supabase Auth (phone/OTP is common in Algeria); RLS so users only read their own tickets |
+| Map tiles | `tile.openstreetmap.org`, tinted on device | The OSM tile usage policy does not allow app-scale traffic: use a tile provider with a key (MapTiler, Mapbox, …) or self-hosted dark vector tiles; keep the attribution |
+| "View from your seat" | Render of the procedural model | Optionally real photos/360° captures per block, with the render as fallback |
+| Team crests | Drawn from club colours | Licensed club logos if the clubs agree |
+| Stadium model | Procedural, approximate | A surveyed model of the real ground (same naming convention, same script output contract) |
+| Localisation | English only | Arabic (RTL) and French |
+| Ops | None | Crash reporting, analytics, remote config for prices and gates opening time |
+
+### Supabase sketch
+
+```sql
+create table stadiums (
+  id text primary key, name text, city text,
+  lat double precision, lng double precision,
+  vip_upgrade_price int, gates_open_minutes_before int,
+  layout jsonb                 -- the stands/blocks section of stadium.json
+);
+
+create table matches (
+  id text primary key, stadium_id text references stadiums,
+  home_team text, away_team text, kickoff timestamptz,
+  competition text, round text, price_multiplier numeric
+);
+
+create table tickets (
+  id text primary key,
+  match_id text references matches, seat_id text,   -- 'E_105_R11_S21'
+  user_id uuid references auth.users,
+  vip boolean default false, amount int,
+  status text check (status in ('held', 'paid', 'cancelled', 'refunded')),
+  hold_expires_at timestamptz, payment_ref text,
+  created_at timestamptz default now()
+);
+-- One live ticket per seat and match.
+create unique index one_live_ticket on tickets (match_id, seat_id)
+  where status in ('held', 'paid');
+```
+
+Availability is a view or RPC that returns, per block, the row-major indexes
+of held and paid seats. That matches the `availability {level: seat}`
+message, so the 3D side doesn't change.

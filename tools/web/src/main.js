@@ -1,6 +1,7 @@
 // Stadia 3D viewer: stadium.glb + picking + camera fly-to + Flutter bridge.
 // Modes (URL ?mode=): picker (default) | intro. Add &debug for stats and,
 // in a plain browser, the dev harness in dev.js.
+import './compat.js';
 import {
   AdditiveBlending,
   CanvasTexture,

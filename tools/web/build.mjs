@@ -15,7 +15,10 @@ const options = {
   format: 'iife',
   minify: !watch,
   sourcemap: false,
-  target: ['es2020', 'safari15', 'chrome90'],
+  // Android 10 ships Chrome WebView 74, and devices that never update it
+  // stay there: lower ?., ??, class fields etc. for it. three r187 itself
+  // only needs WebGL2, which Chrome 74 and Safari 15 both have.
+  target: ['es2019', 'chrome74', 'safari15'],
   outfile: join(out, 'stadium.js'),
   legalComments: 'eof',
   // three's DRACOLoader resolves default decoder URLs from import.meta.url,
