@@ -52,6 +52,7 @@ export class Rig {
     this.flight = null;
     this.current = null;
     this.interactive = true;
+    this.rotateSpeed = controls.rotateSpeed;
   }
 
   setSize(w, h) {
@@ -127,6 +128,10 @@ export class Rig {
     c.maxPolarAngle = l.maxPolar ?? Math.PI;
     c.minAzimuthAngle = l.minAzimuth ?? -Infinity;
     c.maxAzimuthAngle = l.maxAzimuth ?? Infinity;
+    // First-person views turn the head instead of orbiting: no dolly, and
+    // a negative speed so the drag "grabs" the stadium like a panorama.
+    c.enableZoom = l.zoom ?? true;
+    c.rotateSpeed = l.rotateSpeed ?? this.rotateSpeed;
   }
 
   jump(view) {

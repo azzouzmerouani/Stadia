@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,8 +6,8 @@ import 'package:stadia/data/providers.dart';
 import 'package:stadia/data/repositories/local_stadium_repository.dart';
 import 'package:stadia/features/seat_picker/booking_controller.dart';
 import 'package:stadia/features/seat_picker/booking_machine.dart';
+import 'package:stadia/features/seat_picker/seat_panel.dart';
 import 'package:stadia/features/seat_picker/seat_picker_screen.dart';
-import 'package:stadia/features/seat_picker/seat_sheet_launcher.dart';
 import 'package:stadia/features/stadium3d/stadium_scene_controller.dart';
 import 'package:stadia/features/stadium3d/stadium_view.dart';
 import 'package:stadia/l10n/l10n.dart';
@@ -45,11 +43,8 @@ const matchId = 'mco-mca-2026-11-28';
 
 void main() {
   late StadiumSceneController scene;
-  late Completer<String?> sheet;
-  late int sheetOpened;
 
   Future<ProviderContainer> pumpPicker(WidgetTester tester) async {
-    sheetOpened = 0;
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -61,15 +56,6 @@ void main() {
           ) {
             scene = controller;
             return const SizedBox.expand(key: Key('fake-3d'));
-          }),
-          seatSheetLauncherProvider.overrideWithValue((
-            context, {
-            required matchId,
-            required scene,
-          }) {
-            sheetOpened++;
-            sheet = Completer<String?>();
-            return sheet.future;
           }),
         ],
         child: MaterialApp(
@@ -152,17 +138,40 @@ void main() {
       '{"type":"select","level":"seat","id":"E_104_R12_S7"}',
     );
     expect(state().step, BookingStep.buy);
-    expect(sheetOpened, 1);
-    expect(find.text('Row 12 · Seat 7'), findsOneWidget);
+    // The camera goes into the seat; the panel is part of this screen (no
+    // route pushed), and the 3D stays in the tree behind it.
+    expect(lastOf('setStep'), containsPair('step', 'buy'));
     expect(lastOf('setStep')['seat'], 'E_104_R12_S7');
+    expect(find.byType(SeatPanel), findsOneWidget);
+    expect(find.byKey(const Key('fake-3d')), findsOneWidget);
+    expect(find.text('Row 12 · Seat 7'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2)); // "seat taken" toast ends
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(
+      find.text('View from your seat · Drag to look around'),
+      findsOneWidget,
+    );
+    expect(find.text('Tap a stand to zoom in'), findsNothing);
 
-    // Sheet dismissed without buying -> back to picking a seat.
-    sheet.complete();
+    // Checkout, then system back: back to the seat stage, still seated.
+    await tester.tap(find.text('Buy ticket'));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('Checkout'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pump(); // starts the cross-fade
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('Checkout'), findsNothing);
+    expect(find.text('Buy ticket'), findsOneWidget);
+    expect(state().step, BookingStep.buy);
+
+    // "Another seat" -> back to picking a seat, camera out of the seat.
+    await tester.tap(find.text('Another seat'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
-    await tester.pump(const Duration(milliseconds: 400)); // cards slide back
     expect(state().step, BookingStep.seat);
     expect(state().seat, isNull);
+    expect(find.byType(SeatPanel), findsNothing);
+    expect(lastOf('setStep'), containsPair('step', 'seat'));
 
     // Back button goes up one level.
     await tester.tap(find.bySemanticsLabel('Back'));

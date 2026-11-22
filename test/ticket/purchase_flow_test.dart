@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,8 +8,8 @@ import 'package:stadia/data/providers.dart';
 import 'package:stadia/data/repositories/local_stadium_repository.dart';
 import 'package:stadia/features/seat_picker/booking_controller.dart';
 import 'package:stadia/features/seat_picker/booking_machine.dart';
+import 'package:stadia/features/seat_picker/seat_panel.dart';
 import 'package:stadia/features/seat_picker/seat_picker_screen.dart';
-import 'package:stadia/features/seat_picker/seat_sheet.dart';
 import 'package:stadia/features/stadium3d/stadium_scene_controller.dart';
 import 'package:stadia/features/stadium3d/stadium_view.dart';
 import 'package:stadia/features/ticket/ticket_screen.dart';
@@ -23,7 +20,7 @@ import 'package:stadia/ui/theme.dart';
 
 const _matchId = 'mco-mca-2026-11-28';
 
-/// Seat picker -> real seat sheet -> mock checkout -> ticket screen, with
+/// Seat picker -> real seat panel -> mock checkout -> ticket screen, with
 /// the 3D view replaced by a placeholder and scene events injected.
 void main() {
   late LocalStadiumRepository repo;
@@ -66,7 +63,7 @@ void main() {
           ),
           stadiumViewBuilderProvider.overrideWithValue((context, c, mode) {
             scene = c;
-            if (!c.isAttached) c.attach((json) => _fakePage(c, json));
+            if (!c.isAttached) c.attach((_) {});
             return const SizedBox.expand();
           }),
         ],
@@ -128,35 +125,32 @@ void main() {
 
   setUp(() => repo = LocalStadiumRepository(latency: Duration.zero));
 
-  testWidgets('seat sheet -> VIP -> checkout -> "You\'re in"', (tester) async {
+  testWidgets('seat panel -> VIP -> checkout -> "You\'re in"', (tester) async {
     await pumpApp(tester);
     final (block, seat) = await pickEastSeat(tester);
     final match = container.read(bookingContextProvider(_matchId)).value!.match;
     final price = match.priceFor(block);
 
-    // The sheet: seat, view, block/row/seat/gate, price. (The picker's own
-    // card is still in the tree behind it, so look inside the sheet only.)
+    // The panel: seat, block/row/seat/gate, price. Behind it the scene
+    // sits in the seat (the live view from it, no rendered snapshot).
     expect(booking().step, BookingStep.buy);
-    expect(inSheet('Row ${seat.row} · Seat ${seat.seat}'), findsOneWidget);
-    expect(inSheet('View from your seat'), findsOneWidget);
-    expect(inSheet('Something went wrong'), findsOneWidget); // no WebView
-    expect(inSheet('${block.number}'), findsOneWidget);
-    expect(inSheet('B'), findsOneWidget);
-    expect(inSheet(formatPrice(price)), findsOneWidget);
-    expect(
-      scene.log.where((m) => m['type'] == 'renderView').single['seat'],
-      seat.id,
-    );
-    // The sheet tells the scene how much of the screen it covers.
+    expect(inPanel('Row ${seat.row} · Seat ${seat.seat}'), findsOneWidget);
+    expect(inPanel('${block.number}'), findsOneWidget);
+    expect(inPanel('B'), findsOneWidget);
+    expect(inPanel(formatPrice(price)), findsOneWidget);
+    final step = scene.log.lastWhere((m) => m['type'] == 'setStep');
+    expect(step, containsPair('step', 'buy'));
+    expect(step, containsPair('seat', seat.id));
+    // The panel tells the scene how much of the screen it covers.
     final insets = scene.log.lastWhere((m) => m['type'] == 'insets');
-    expect(insets['bottom'], greaterThan(300));
+    expect(insets['bottom'], greaterThan(250));
 
     // VIP: Gate E and the upgrade in the price.
     await tester.tap(find.textContaining('VIP upgrade'));
     await settle(tester);
     expect(booking().vip, isTrue);
-    expect(inSheet('E'), findsOneWidget);
-    expect(inSheet(formatPrice(price + 3000)), findsOneWidget);
+    expect(inPanel('E'), findsOneWidget);
+    expect(inPanel(formatPrice(price + 3000)), findsOneWidget);
 
     // Checkout.
     await tester.tap(find.text('Buy ticket'));
@@ -184,7 +178,7 @@ void main() {
     expect(sold!.isSeatFree(block, seat), isFalse);
   });
 
-  testWidgets('"Another seat" closes the sheet and goes back to seats', (
+  testWidgets('"Another seat" closes the panel and goes back to seats', (
     tester,
   ) async {
     await pumpApp(tester);
@@ -204,7 +198,7 @@ void main() {
     await pumpApp(tester);
     final (_, seat) = await pickEastSeat(tester);
     final match = container.read(bookingContextProvider(_matchId)).value!.match;
-    // Someone else books it while the sheet is open.
+    // Someone else books it while the panel is open.
     await tester.runAsync(
       () => repo.issueTicket(
         match: match,
@@ -234,25 +228,8 @@ void main() {
   });
 }
 
-/// Stands in for the WebView page: answers seat-view renders the way the
-/// page does when it cannot render (empty data URL).
-void _fakePage(StadiumSceneController scene, String json) {
-  final message = jsonDecode(json) as Map<String, Object?>;
-  if (message['type'] != 'renderView') return;
-  scheduleMicrotask(
-    () => scene.handleIncoming(
-      jsonEncode({
-        'type': 'view',
-        'requestId': message['requestId'],
-        'seat': message['seat'],
-        'dataUrl': '',
-      }),
-    ),
-  );
-}
-
-Finder inSheet(String text) =>
-    find.descendant(of: find.byType(SeatSheet), matching: find.text(text));
+Finder inPanel(String text) =>
+    find.descendant(of: find.byType(SeatPanel), matching: find.text(text));
 
 /// Frame-by-frame pumping (the scene loader animates forever, so
 /// pumpAndSettle would never return).

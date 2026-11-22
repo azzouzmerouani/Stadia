@@ -1,9 +1,4 @@
-import 'dart:async';
-import 'dart:math' as math;
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/stadium.dart';
@@ -14,65 +9,36 @@ import '../../ui/format.dart';
 import '../../ui/glass.dart';
 import '../../ui/icons.dart';
 import '../../ui/spring_press.dart';
-import '../../ui/stadia_loader.dart';
 import '../../ui/tokens.dart';
-import '../stadium3d/stadium_scene_controller.dart';
 import '../ticket/checkout.dart';
 import 'booking_controller.dart';
 import 'booking_machine.dart';
 import 'booking_words.dart';
 
-/// Opens the seat sheet over the 3D view. Completes with the issued ticket
-/// id, or null when the fan closed it or chose another seat.
-Future<String?> showSeatSheet(
-  BuildContext context, {
-  required String matchId,
-  required StadiumSceneController scene,
-}) {
-  final topInset = MediaQuery.paddingOf(context).top + 12;
-  return showModalBottomSheet<String>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    // Light barrier: the seat stays visible above the sheet.
-    barrierColor: const Color(0x261E0021),
-    builder: (_) =>
-        SeatSheet(matchId: matchId, scene: scene, topInset: topInset),
-  );
-}
-
 enum _Stage { seat, checkout, taken }
 
-/// Seat details ("View from your seat", block/row/seat/gate/price, VIP)
-/// and, on "Buy ticket", the checkout in the same sheet.
-class SeatSheet extends ConsumerStatefulWidget {
-  const SeatSheet({
-    super.key,
-    required this.matchId,
-    required this.scene,
-    this.topInset = 0,
-  });
+/// The buy step, in the picker's own tree (not a modal): the 3D behind it
+/// stays live, with the camera sitting in the chosen seat. Seat details
+/// (block/row/seat/gate/price, VIP) and, on "Buy ticket", the checkout.
+class SeatPanel extends ConsumerStatefulWidget {
+  const SeatPanel({super.key, required this.matchId, required this.onTicket});
 
   final String matchId;
-  final StadiumSceneController scene;
 
-  /// Screen space above the sheet the scene may use (status bar etc.).
-  final double topInset;
+  /// A ticket was issued: the screen moves on to it.
+  final ValueChanged<String> onTicket;
 
   @override
-  ConsumerState<SeatSheet> createState() => _SeatSheetState();
+  ConsumerState<SeatPanel> createState() => SeatPanelState();
 }
 
-class _SeatSheetState extends ConsumerState<SeatSheet> {
+class SeatPanelState extends ConsumerState<SeatPanel> {
   var _stage = _Stage.seat;
   var _method = PaymentMethod.cib;
   var _paying = false;
   String? _error;
   String? _refundReference;
   late final SeatRef? _seat;
-  Timer? _insetsTimer;
-  double? _reportedHeight;
 
   @override
   void initState() {
@@ -80,32 +46,28 @@ class _SeatSheetState extends ConsumerState<SeatSheet> {
     _seat = ref.read(bookingControllerProvider(widget.matchId)).seat;
   }
 
-  @override
-  void dispose() {
-    _insetsTimer?.cancel();
-    super.dispose();
-  }
-
   BookingController get _booking =>
       ref.read(bookingControllerProvider(widget.matchId).notifier);
 
-  /// Lets the scene frame the seat in the space left above the sheet.
-  /// Debounced: the sheet animates its height between stages.
-  void _onSize(Size size) {
-    _insetsTimer?.cancel();
-    _insetsTimer = Timer(const Duration(milliseconds: 140), () {
-      if (!mounted) return;
-      final height = size.height.roundToDouble();
-      if (height == _reportedHeight) return;
-      _reportedHeight = height;
-      widget.scene.setInsets(top: widget.topInset, bottom: height + 8);
-    });
+  /// A payment is in flight: navigation must wait for its outcome.
+  bool get busy => _paying;
+
+  /// Back (button, gesture, progress bar) while the panel is up. Returns
+  /// true when the panel handled it: checkout steps back to the seat, and
+  /// nothing leaves while paying.
+  bool handleBack() {
+    if (_paying) return true;
+    if (_stage == _Stage.checkout) {
+      setState(() {
+        _stage = _Stage.seat;
+        _error = null;
+      });
+      return true;
+    }
+    return false;
   }
 
-  void _anotherSeat() {
-    _booking.dispatch(const AnotherSeat());
-    Navigator.of(context).pop();
-  }
+  void _anotherSeat() => _booking.dispatch(const AnotherSeat());
 
   Future<void> _pay(BookingContext ctx, SeatRef seat, bool vip) async {
     setState(() {
@@ -118,7 +80,7 @@ class _SeatSheetState extends ConsumerState<SeatSheet> {
     if (!mounted) return;
     switch (outcome) {
       case CheckoutDone(:final ticket):
-        Navigator.of(context).pop(ticket.id);
+        widget.onTicket(ticket.id);
       case CheckoutSeatTaken(:final refundReference):
         setState(() {
           _paying = false;
@@ -159,7 +121,6 @@ class _SeatSheetState extends ConsumerState<SeatSheet> {
     final Widget content = switch (_stage) {
       _Stage.seat => _SeatStage(
         key: const ValueKey('seat'),
-        scene: widget.scene,
         seat: seat,
         stand: stand,
         block: block,
@@ -192,52 +153,38 @@ class _SeatSheetState extends ConsumerState<SeatSheet> {
       ),
     };
 
-    return PopScope(
-      canPop: !_paying,
-      child: _MeasureSize(
-        onChange: _onSize,
-        child: SafeArea(
-          top: false,
-          minimum: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-          child: GestureDetector(
-            // While paying, swallow drags so the sheet can't be pulled away.
-            onVerticalDragStart: _paying ? (_) {} : null,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.64,
+      ),
+      child: GlassSurface(
+        blur: 18,
+        shadow: true,
+        fill: const Color(0xF028002B),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          child: AnimatedSize(
+            duration: StadiaMotion.medium,
+            curve: StadiaMotion.emphasized,
+            alignment: Alignment.bottomCenter,
+            child: AnimatedSwitcher(
+              duration: StadiaMotion.medium,
+              switchInCurve: StadiaMotion.emphasized,
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.bottomCenter,
+                children: [...previous, ?current],
               ),
-              child: GlassSurface(
-                blur: 18,
-                shadow: true,
-                fill: const Color(0xF528002B),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-                  child: AnimatedSize(
-                    duration: StadiaMotion.medium,
-                    curve: StadiaMotion.emphasized,
-                    alignment: Alignment.bottomCenter,
-                    child: AnimatedSwitcher(
-                      duration: StadiaMotion.medium,
-                      switchInCurve: StadiaMotion.emphasized,
-                      layoutBuilder: (current, previous) => Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [...previous, ?current],
-                      ),
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween(
-                            begin: const Offset(0, 0.04),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
-                      ),
-                      child: content,
-                    ),
-                  ),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween(
+                    begin: const Offset(0, 0.04),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
                 ),
               ),
+              child: content,
             ),
           ),
         ),
@@ -251,7 +198,6 @@ class _SeatSheetState extends ConsumerState<SeatSheet> {
 class _SeatStage extends StatelessWidget {
   const _SeatStage({
     super.key,
-    required this.scene,
     required this.seat,
     required this.stand,
     required this.block,
@@ -262,7 +208,6 @@ class _SeatStage extends StatelessWidget {
     required this.onBuy,
   });
 
-  final StadiumSceneController scene;
   final SeatRef seat;
   final Stand stand;
   final Block block;
@@ -280,8 +225,6 @@ class _SeatStage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _Grabber(),
-        const SizedBox(height: 12),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -317,8 +260,6 @@ class _SeatStage extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-        _SeatView(scene: scene, seat: seat),
-        const SizedBox(height: 12),
         _InfoRow(
           cells: [
             (l10n.labelBlock, '${block.number}'),
@@ -389,8 +330,6 @@ class _CheckoutStage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _Grabber(),
-        const SizedBox(height: 10),
         Row(
           children: [
             GlassIconButton(
@@ -507,8 +446,7 @@ class _TakenStage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _Grabber(),
-        const SizedBox(height: 18),
+        const SizedBox(height: 4),
         const Center(child: StadiaIcon(StadiaGlyph.seat, size: 30)),
         const SizedBox(height: 12),
         Text(
@@ -531,24 +469,6 @@ class _TakenStage extends StatelessWidget {
 
 // -------------------------------------------------------------- pieces
 
-class _Grabber extends StatelessWidget {
-  const _Grabber();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 36,
-        height: 4,
-        decoration: BoxDecoration(
-          color: StadiaColors.hairline,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-    );
-  }
-}
-
 /// Cross-fades [child] whenever [value] changes.
 class _Swap extends StatelessWidget {
   const _Swap({required this.value, required this.child});
@@ -561,180 +481,6 @@ class _Swap extends StatelessWidget {
     return AnimatedSwitcher(
       duration: StadiaMotion.fast,
       child: KeyedSubtree(key: ValueKey(value), child: child),
-    );
-  }
-}
-
-/// The scene rendered from the seat's eye height, pannable sideways.
-class _SeatView extends StatefulWidget {
-  const _SeatView({required this.scene, required this.seat});
-
-  final StadiumSceneController scene;
-  final SeatRef seat;
-
-  @override
-  State<_SeatView> createState() => _SeatViewState();
-}
-
-class _SeatViewState extends State<_SeatView> {
-  static const _height = 164.0;
-
-  Uint8List? _image;
-  var _done = false;
-  Timer? _delay;
-  TransformationController? _pan;
-
-  @override
-  void initState() {
-    super.initState();
-    // Let the sheet slide in first: the render costs a frame.
-    _delay = Timer(const Duration(milliseconds: 280), _render);
-  }
-
-  Future<void> _render() async {
-    final bytes = await widget.scene.renderSeatView(widget.seat);
-    if (!mounted) return;
-    setState(() {
-      _image = bytes;
-      _done = true;
-    });
-  }
-
-  @override
-  void dispose() {
-    _delay?.cancel();
-    _pan?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final image = _image;
-    return Semantics(
-      label: l10n.viewFromSeat,
-      image: true,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(StadiaRadii.md),
-        child: SizedBox(
-          height: _height,
-          child: ColoredBox(
-            color: StadiaColors.purple120,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (image != null)
-                  LayoutBuilder(
-                    builder: (context, box) => _panorama(image, box),
-                  )
-                else
-                  Center(
-                    child: _done
-                        ? Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const StadiaIcon(
-                                StadiaGlyph.cube,
-                                size: 26,
-                                color: StadiaColors.textTertiary,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                l10n.somethingWentWrong,
-                                style: StadiaText.caption,
-                              ),
-                            ],
-                          )
-                        : const TrackLoader(width: 64),
-                  ),
-                PositionedDirectional(
-                  start: 10,
-                  top: 10,
-                  child: _Chip(
-                    glyph: StadiaGlyph.cube,
-                    text: l10n.viewFromSeat,
-                  ),
-                ),
-                if (image != null)
-                  PositionedDirectional(
-                    end: 10,
-                    bottom: 10,
-                    child: _Chip(
-                      glyph: StadiaGlyph.orbit,
-                      text: l10n.dragToLookAround,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// The 2:1 render is wider than the box: start centred, pan and pinch.
-  Widget _panorama(Uint8List image, BoxConstraints box) {
-    final width = math.max(box.maxWidth, box.maxHeight * 2);
-    final height = width / 2;
-    _pan ??= TransformationController(
-      Matrix4.translationValues(
-        -(width - box.maxWidth) / 2,
-        -(height - box.maxHeight) / 2,
-        0,
-      ),
-    );
-    return InteractiveViewer(
-      transformationController: _pan,
-      constrained: false,
-      maxScale: 3,
-      child: Image.memory(
-        image,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        frameBuilder: (context, child, frame, _) => AnimatedOpacity(
-          opacity: frame == null ? 0 : 1,
-          duration: StadiaMotion.medium,
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({required this.glyph, required this.text});
-
-  final StadiaGlyph glyph;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xCC28002B),
-          borderRadius: BorderRadius.circular(StadiaRadii.pill),
-        ),
-        child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(8, 3, 10, 3),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              StadiaIcon(glyph, size: 13),
-              const SizedBox(width: 5),
-              Text(
-                text,
-                style: StadiaText.caption.copyWith(
-                  color: StadiaColors.textSecondary,
-                  fontSize: 11.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -985,38 +731,5 @@ class _MethodTile extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Reports its child's size after every layout that changes it.
-class _MeasureSize extends SingleChildRenderObjectWidget {
-  const _MeasureSize({required this.onChange, super.child});
-
-  final ValueChanged<Size> onChange;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) =>
-      _RenderMeasureSize(onChange);
-
-  @override
-  void updateRenderObject(
-    BuildContext context,
-    _RenderMeasureSize renderObject,
-  ) => renderObject.onChange = onChange;
-}
-
-class _RenderMeasureSize extends RenderProxyBox {
-  _RenderMeasureSize(this.onChange);
-
-  ValueChanged<Size> onChange;
-  Size? _last;
-
-  @override
-  void performLayout() {
-    super.performLayout();
-    final measured = size;
-    if (measured == _last) return;
-    _last = measured;
-    WidgetsBinding.instance.addPostFrameCallback((_) => onChange(measured));
   }
 }

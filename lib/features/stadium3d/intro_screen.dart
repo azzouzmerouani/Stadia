@@ -62,7 +62,7 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
         setState(() => _ready = true);
       case SceneIntroDone() || SceneError():
         _leave();
-      case SceneSelect() || SceneView() || SceneStats():
+      case SceneSelect() || SceneStats():
         break;
     }
   }

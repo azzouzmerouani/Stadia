@@ -2,8 +2,13 @@
 
 Stadium ticket booking for iOS and Android with a 3D seat picker. You find the
 match on a map, pick your stand, block and seat on an interactive 3D model of
-the stadium, see the view from that seat, pay, and get a ticket with an entry
-QR code.
+the stadium, sit in that seat (the live 3D view from it, full screen), pay,
+and get a ticket with an entry QR code.
+
+The app is in Arabic (Algeria) with English as a second locale, set in Cairo,
+and its design system follows the Fantasy Premier League site: the purple
+ramp, the green/cyan/lilac accents and gradients, pill buttons, 8/12/16 px
+radii and its card shadow.
 
 The demo stadium is a ~40,000-seat Algerian ground (Stade Miloud Hadefi, Oran)
 with Ligue 1 and Algerian Cup fixtures between Algerian clubs. All data is
@@ -22,14 +27,16 @@ mocked behind repository and payment interfaces (see
 
 1. **Splash**: "Loading the stadium" while the 3D assets server starts.
 2. **3D intro**: an orbit around the floodlit stadium, with Skip.
-3. **Map**: OpenStreetMap (navy-tinted tiles, attribution shown) centred on
+3. **Map**: OpenStreetMap (purple-tinted tiles, attribution shown) centred on
    the stadium, with the gates and a glass "Upcoming matches" card.
 4. **3D seat picker**: Stand → Block → Seat → Buy. Each tap flies the camera
    in. Blocks and seats are coloured by availability (free / few left /
    sold). A floating glass card shows the selection, free seats and price.
-5. **Seat sheet**: "View from your seat" (rendered from the seat's eye
-   height, drag to look around), block / row / seat / gate / price, the VIP
-   upgrade (+3 000 DA, lounge, Gate E), "Another seat" and "Buy ticket".
+5. **In the seat**: the camera flies into the chosen seat and stays there:
+   the live, full-screen view from a seated fan's eye height, drag to look
+   around (no pop-up, no snapshot). A panel in the same screen shows block /
+   row / seat / gate / price, the VIP upgrade (+3 000 DA, lounge, Gate E),
+   "Another seat" and "Buy ticket".
 6. **Checkout**: order lines, CIB or Edahabia, Pay (mock).
 7. **"You're in"**: a notched ticket with the match, seat, gate, entry QR and
    the gates-open time.
@@ -72,7 +79,9 @@ The tests cover:
 
 - the booking state machine (unit tests);
 - the seat picker driven by injected 3D events;
-- the seat sheet → checkout → ticket flow, end to end;
+- the seat panel → checkout → ticket flow, end to end (and back from
+  checkout to the seat);
+- Arabic: data resolution, ar_DZ formatting, RTL layout, crest assets;
 - the ticket screen;
 - the checkout service (charge, VIP, declined, cancelled, seat taken before
   paying);
@@ -126,8 +135,8 @@ cd tools/web && npm run serve
 
 Then open `http://localhost:5175/index.html?mode=picker&debug`. With
 `debug` and no Flutter host, a dev harness plays the app's side: it sends
-availability and steps and answers taps. Esc goes back, V renders the view
-from the selected seat, I simulates a tall bottom sheet. `mode=intro` plays
+availability and steps and answers taps. Esc goes back,
+I simulates the tall checkout panel. `mode=intro` plays
 the intro; `&spin` auto-rotates and renders every frame (for fps checks).
 
 ## Architecture
@@ -135,8 +144,10 @@ the intro; `&spin` auto-rotates and renders every frame (for fps checks).
 ```text
 lib/
   app/            MaterialApp.router, go_router routes (fade transitions)
-  ui/             design system: tokens, glass surface, spring-press buttons,
-                  hand-drawn glyphs (no icon packs), loaders, team crests
+  l10n/           ARB files (ar, en) + generated AppLocalizations
+  ui/             design system: FPL-style tokens, Cairo text styles, glass
+                  surface, pill buttons, hand-drawn glyphs (no icon packs),
+                  loaders, team crests, ar_DZ / en number and date formats
   data/
     models/       Stadium, Stand, Block, SeatRef, FootballMatch, Ticket, ...
     repositories/ StadiumRepository (interface) + LocalStadiumRepository (JSON)
@@ -149,7 +160,7 @@ lib/
     map/          flutter_map + OSM, gates, stadium marker
     matches/      upcoming matches card
     seat_picker/  BookingMachine (pure), BookingController, picker screen,
-                  seat sheet
+                  seat panel (buy step, in the picker's tree)
     ticket/       Checkout service, ticket screen, notched ticket card
 tools/
   blender/        build_stadium.py (headless model generator)
@@ -207,16 +218,14 @@ Flutter → JS: `window.stadia.receive(json)`. JS → Flutter: the
 | Direction | Message | Meaning |
 |---|---|---|
 | → JS | `init {mode}` | `intro` or `picker` |
-| → JS | `setStep {step, stand?, block?, seat?}` | current booking step; the camera flies there |
+| → JS | `setStep {step, stand?, block?, seat?}` | current booking step; the camera flies there (`buy`: into the seat, first person) |
 | → JS | `availability {level: stand\|block, items}` | free ratio 0..1 per stand/block |
 | → JS | `availability {level: seat, block, rows, seats, sold[]}` | sold seat indexes (row-major) |
 | → JS | `labels {items}` | stand names for in-scene labels |
 | → JS | `insets {top, bottom}` | screen px covered by Flutter UI |
-| → JS | `renderView {seat, requestId}` | render the view from a seat |
 | → JS | `highlight {id}`, `skipIntro` | |
 | → Flutter | `ready {timings}` | scene loaded |
 | → Flutter | `select {level, id}` | a stand / block / seat was tapped |
-| → Flutter | `view {requestId, dataUrl}` | JPEG of the seat view |
 | → Flutter | `introDone`, `error {message}`, `stats {fps, calls, triangles}` | |
 
 The source of truth is the doc comment in
@@ -238,10 +247,10 @@ The source of truth is the doc comment in
 | Wallet | In memory, lost on restart | Persisted per account, available offline (encrypted local cache) |
 | Accounts | None | Supabase Auth (phone/OTP is common in Algeria); RLS so users only read their own tickets |
 | Map tiles | `tile.openstreetmap.org`, tinted on device | The OSM tile usage policy does not allow app-scale traffic: use a tile provider with a key (MapTiler, Mapbox, …) or self-hosted dark vector tiles; keep the attribution |
-| "View from your seat" | Render of the procedural model | Optionally real photos/360° captures per block, with the render as fallback |
-| Team crests | Drawn from club colours | Licensed club logos if the clubs agree |
+| View from the seat | Live first-person view of the procedural model | A surveyed model; optionally 360° captures per block |
+| Team crests | Real club crests bundled for the demo (club trademarks), drawn shield as fallback | Written permission from each club (or the LFP), served from the CDN by `team.logo` |
 | Stadium model | Procedural, approximate | A surveyed model of the real ground (same naming convention, same script output contract) |
-| Localisation | English only | Arabic (RTL) and French |
+| Localisation | Arabic (Algeria, default) and English; data names as `{en, ar}` maps | French; native-speaker review; server-side names per `Accept-Language` |
 | Ops | None | Crash reporting, analytics, remote config for prices and gates opening time |
 
 ### Supabase sketch
@@ -277,3 +286,16 @@ create unique index one_live_ticket on tickets (match_id, seat_id)
 Availability is a view or RPC that returns, per block, the row-major indexes
 of held and paid seats. That matches the `availability {level: seat}`
 message, so the 3D side doesn't change.
+
+## Credits and licences
+
+- **Cairo** font by Mohamed Gaber and Accademia di Belle Arti di Urbino,
+  [SIL Open Font License 1.1](assets/fonts/OFL.txt). Static weights were
+  cut from the variable font; the 3D labels use the same files.
+- **Club crests** (MCO, MCA, JSK, ESS, USMA, CRB, CSC) are the clubs'
+  trademarks, included only to demo the UI. Get permission before any
+  release.
+- **Design**: the colours, radii and component shapes are modelled on the
+  Fantasy Premier League website. Stadia is not affiliated with the Premier
+  League; the FPL typefaces are not used.
+- **Map data** © OpenStreetMap contributors (ODbL).

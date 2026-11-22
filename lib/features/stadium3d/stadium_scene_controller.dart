@@ -16,9 +16,7 @@ typedef ScenePort = void Function(String json);
 class StadiumSceneController {
   ScenePort? _port;
   final _pending = <String, Map<String, Object?>>{};
-  final _views = <String, Completer<Uint8List?>>{};
   final _events = StreamController<SceneEvent>.broadcast();
-  var _nextRequest = 0;
 
   /// Every message sent, newest last (handy in tests and debugging).
   @visibleForTesting
@@ -62,9 +60,6 @@ class StadiumSceneController {
     if (decoded is! Map<String, dynamic>) return;
     final event = SceneEvent.fromJson(decoded);
     if (event == null) return;
-    if (event is SceneView) {
-      _views.remove(event.requestId)?.complete(_decodeDataUrl(event.dataUrl));
-    }
     _events.add(event);
   }
 
@@ -79,89 +74,55 @@ class StadiumSceneController {
 
   /// Stand names for the in-scene labels.
   void sendLabels(Stadium stadium) => send({
-        'type': 'labels',
-        'items': {for (final s in stadium.stands) s.id: s.name},
-      });
+    'type': 'labels',
+    'items': {for (final s in stadium.stands) s.id: s.name},
+  });
 
   /// How much of the view the Flutter UI covers, so the scene frames its
   /// camera in the visible part.
-  void setInsets({required double top, required double bottom}) => send({
-        'type': 'insets',
-        'top': top.round(),
-        'bottom': bottom.round(),
-      });
+  void setInsets({required double top, required double bottom}) =>
+      send({'type': 'insets', 'top': top.round(), 'bottom': bottom.round()});
 
   void setStep(BookingState state) => send({
-        'type': 'setStep',
-        'step': state.step.name,
-        'stand': state.standId,
-        'block': state.blockId,
-        'seat': state.seat?.id,
-      });
+    'type': 'setStep',
+    'step': state.step.name,
+    'stand': state.standId,
+    'block': state.blockId,
+    'seat': state.seat?.id,
+  });
 
   void sendStandAvailability(Stadium stadium, MatchAvailability a) => send({
-        'type': 'availability',
-        'level': 'stand',
-        'items': {
-          for (final s in stadium.stands)
-            s.id: _ratio(a.freeInStand(s), s.capacity),
-        },
-      });
+    'type': 'availability',
+    'level': 'stand',
+    'items': {
+      for (final s in stadium.stands)
+        s.id: _ratio(a.freeInStand(s), s.capacity),
+    },
+  });
 
   void sendBlockAvailability(Stadium stadium, MatchAvailability a) => send({
-        'type': 'availability',
-        'level': 'block',
-        'items': {
-          for (final b in stadium.blocks)
-            b.id: _ratio(a.freeInBlock(b.id), b.capacity),
-        },
-      });
+    'type': 'availability',
+    'level': 'block',
+    'items': {
+      for (final b in stadium.blocks)
+        b.id: _ratio(a.freeInBlock(b.id), b.capacity),
+    },
+  });
 
   void sendSeatAvailability(Block block, MatchAvailability a) => send({
-        'type': 'availability',
-        'level': 'seat',
-        'block': block.id,
-        'rows': block.rows,
-        'seats': block.seatsPerRow,
-        'sold': (a.block(block.id)?.sold.toList() ?? <int>[])..sort(),
-      });
-
-  /// Asks the scene to render the view from [seat]; completes with JPEG
-  /// bytes, or null on timeout / when no scene is attached.
-  Future<Uint8List?> renderSeatView(
-    SeatRef seat, {
-    Duration timeout = const Duration(seconds: 4),
-  }) {
-    if (_port == null) return Future.value();
-    final id = 'v${_nextRequest++}';
-    final completer = Completer<Uint8List?>();
-    _views[id] = completer;
-    send({'type': 'renderView', 'seat': seat.id, 'requestId': id});
-    return completer.future.timeout(timeout, onTimeout: () {
-      _views.remove(id);
-      return null;
-    });
-  }
+    'type': 'availability',
+    'level': 'seat',
+    'block': block.id,
+    'rows': block.rows,
+    'seats': block.seatsPerRow,
+    'sold': (a.block(block.id)?.sold.toList() ?? <int>[])..sort(),
+  });
 
   void dispose() {
     _port = null;
-    for (final c in _views.values) {
-      if (!c.isCompleted) c.complete(null);
-    }
-    _views.clear();
-    _events.close();
+    unawaited(_events.close());
   }
 
   static double _ratio(int free, int capacity) =>
       capacity == 0 ? 0 : double.parse((free / capacity).toStringAsFixed(3));
-
-  static Uint8List? _decodeDataUrl(String url) {
-    final comma = url.indexOf(',');
-    if (comma < 0) return null;
-    try {
-      return base64Decode(url.substring(comma + 1));
-    } on FormatException {
-      return null;
-    }
-  }
 }

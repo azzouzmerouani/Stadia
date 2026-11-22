@@ -1,7 +1,7 @@
 // Browser-only harness (index.html?debug without a Flutter host): plays the
 // Flutter side of the bridge with fake availability so the scene can be
-// tuned in a desktop browser. Keys: Esc = back, V = render seat view,
-// I = toggle the large bottom inset (seat sheet).
+// tuned in a desktop browser. Keys: Esc = back, I = toggle the large
+// bottom inset (seat panel at checkout).
 
 export function installDevHarness(model, log) {
   const send = (m) => window.stadia.receive(m);
@@ -72,16 +72,6 @@ export function installDevHarness(model, log) {
       }
       push();
       say(`select ${m.level} ${m.id}`);
-    } else if (m.type === 'view') {
-      let img = document.getElementById('dev-view');
-      if (!img) {
-        img = document.createElement('img');
-        img.id = 'dev-view';
-        img.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;width:calc(100% - 16px);border-radius:12px;z-index:9;border:1px solid #fff3';
-        img.onclick = () => img.remove();
-        document.body.appendChild(img);
-      }
-      img.src = m.dataUrl;
     } else {
       say(JSON.stringify(m).slice(0, 160));
     }
@@ -89,7 +79,6 @@ export function installDevHarness(model, log) {
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' || e.key === 'Backspace') back();
-    if ((e.key === 'v' || e.key === 'V') && st.seat) send({ type: 'renderView', seat: st.seat, requestId: 'dev' });
     if (e.key === 'i' || e.key === 'I') {
       bigInset = !bigInset;
       send({ type: 'insets', top: 200, bottom: bigInset ? Math.round(window.innerHeight * 0.58) : 230 });

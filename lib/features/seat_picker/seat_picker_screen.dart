@@ -12,6 +12,7 @@ import '../../ui/buttons.dart';
 import '../../ui/format.dart';
 import '../../ui/glass.dart';
 import '../../ui/icons.dart';
+import '../../ui/measure_size.dart';
 import '../../ui/stadia_loader.dart';
 import '../../ui/step_progress.dart';
 import '../../ui/tokens.dart';
@@ -21,10 +22,12 @@ import '../stadium3d/stadium_view.dart';
 import 'booking_controller.dart';
 import 'booking_machine.dart';
 import 'booking_words.dart';
-import 'seat_sheet_launcher.dart';
+import 'seat_panel.dart';
 import 'widgets/selection_card.dart';
 
-/// Stand -> Block -> Seat -> Buy over the interactive 3D stadium.
+/// Stand -> Block -> Seat -> Buy over the interactive 3D stadium. At Buy the
+/// camera sits in the chosen seat (the live, full-screen view from it) and
+/// the seat panel slides up in this screen's own tree, not a modal.
 class SeatPickerScreen extends ConsumerStatefulWidget {
   const SeatPickerScreen({super.key, required this.matchId});
 
@@ -38,13 +41,13 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
   final _scene = StadiumSceneController();
   late final StreamSubscription<SceneEvent> _events;
   bool _sceneReady = false;
-  bool _sheetOpen = false;
   String? _toast;
   Timer? _toastTimer;
   final _topCardKey = GlobalKey();
   final _bottomKey = GlobalKey();
   Timer? _insetsTimer;
   (double, double)? _insets;
+  var _panelKey = GlobalKey<SeatPanelState>();
 
   @override
   void initState() {
@@ -83,7 +86,7 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
         });
       case SceneError(:final message):
         _showToast(message);
-      case SceneIntroDone() || SceneView() || SceneStats():
+      case SceneIntroDone() || SceneStats():
         break;
     }
   }
@@ -102,9 +105,9 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
   }
 
   /// Tells the scene how much of it the glass cards cover, so the camera
-  /// frames stands / blocks / seats in the visible middle.
+  /// frames stands / blocks / the view from the seat in the visible middle.
   void _reportInsets() {
-    if (!mounted || _sheetOpen) return;
+    if (!mounted) return;
     final top = _topCardKey.currentContext?.findRenderObject();
     final bottom = _bottomKey.currentContext?.findRenderObject();
     if (top is! RenderBox || bottom is! RenderBox) return;
@@ -118,10 +121,10 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
     _scene.setInsets(top: next.$1, bottom: next.$2);
   }
 
-  /// Re-measure once the bottom card has finished resizing.
-  void _measureSoon() {
+  /// Re-measure once the bottom card / panel has finished resizing.
+  void _measureSoon([Duration wait = const Duration(milliseconds: 420)]) {
     _insetsTimer?.cancel();
-    _insetsTimer = Timer(const Duration(milliseconds: 420), _reportInsets);
+    _insetsTimer = Timer(wait, _reportInsets);
   }
 
   void _syncStep(BookingState state) {
@@ -149,45 +152,13 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
         previous.standId != next.standId ||
         previous.blockId != next.blockId ||
         previous.seat != next.seat;
+    if (next.step == BookingStep.buy && previous?.step != BookingStep.buy) {
+      // A fresh panel (seat stage, no payment state) for every seat.
+      _panelKey = GlobalKey<SeatPanelState>();
+    }
     if (stepChanged) {
       _syncStep(next);
       _measureSoon();
-    }
-    if (next.step == BookingStep.buy &&
-        previous?.step != BookingStep.buy &&
-        !_sheetOpen) {
-      unawaited(_openSeatSheet());
-    }
-  }
-
-  Future<void> _openSeatSheet() async {
-    final ctx = ref.read(bookingContextProvider(widget.matchId)).value;
-    if (ctx == null) return;
-    // The sheet takes over: the cards step aside and it reports its own
-    // insets so the camera frames the seat above it.
-    setState(() => _sheetOpen = true);
-    final ticketId = await ref.read(seatSheetLauncherProvider)(
-      context,
-      matchId: widget.matchId,
-      scene: _scene,
-    );
-    if (!mounted) return;
-    if (ticketId != null) {
-      context.go(Routes.ticket(ticketId));
-      return;
-    }
-    setState(() => _sheetOpen = false);
-    // Give the camera the picker's framing back now, re-measure once the
-    // cards have slid back in.
-    if (_insets case (final top, final bottom)) {
-      _scene.setInsets(top: top, bottom: bottom);
-    }
-    _insets = null;
-    _measureSoon();
-    // Dismissed without buying: back to seat selection.
-    if (ref.read(bookingControllerProvider(widget.matchId)).step ==
-        BookingStep.buy) {
-      _booking.dispatch(const AnotherSeat());
     }
   }
 
@@ -199,14 +170,27 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
     });
   }
 
+  SeatPanelState? get _panel => _panelKey.currentState;
+
   void _back() {
     final state = ref.read(bookingControllerProvider(widget.matchId));
+    // Checkout steps back to the seat first; nothing leaves while paying.
+    if (state.step == BookingStep.buy && (_panel?.handleBack() ?? false)) {
+      return;
+    }
     if (state.step == BookingStep.stand) {
       context.pop();
     } else {
       _booking.dispatch(const StepBack());
     }
   }
+
+  void _jumpToStep(int index) {
+    if (_panel?.busy ?? false) return;
+    _booking.dispatch(StepTapped(BookingStep.values[index]));
+  }
+
+  void _onTicket(String ticketId) => context.go(Routes.ticket(ticketId));
 
   // ------------------------------------------------------------------ UI
 
@@ -225,11 +209,12 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
     final viewBuilder = ref.watch(stadiumViewBuilderProvider);
     final l10n = context.l10n;
     final f = StadiaFormat.of(context);
+    final seated = state.step == BookingStep.buy && state.seat != null;
 
     return PopScope(
       canPop: state.step == BookingStep.stand,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _booking.dispatch(const StepBack());
+        if (!didPop) _back();
       },
       child: Scaffold(
         backgroundColor: StadiaColors.page,
@@ -255,24 +240,20 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: _StepAside(
-                  hidden: _sheetOpen,
-                  offset: const Offset(0, -0.3),
-                  child: SafeArea(
-                    bottom: false,
-                    child: _TopBar(
-                      cardKey: _topCardKey,
-                      title: l10n.match(value.match),
-                      subtitle:
-                          '${f.matchDate(value.match.kickoff)} · '
-                          '${f.time(value.match.kickoff)} · '
-                          '${value.stadium.name}',
-                      step: state.step,
-                      onBack: _back,
-                      onStepTap: (i) =>
-                          _booking.dispatch(StepTapped(BookingStep.values[i])),
-                      toast: _toast,
-                    ),
+                child: SafeArea(
+                  bottom: false,
+                  child: _TopBar(
+                    cardKey: _topCardKey,
+                    title: l10n.match(value.match),
+                    subtitle:
+                        '${f.matchDate(value.match.kickoff)} · '
+                        '${f.time(value.match.kickoff)} · '
+                        '${value.stadium.name}',
+                    step: state.step,
+                    onBack: _back,
+                    onStepTap: _jumpToStep,
+                    toast: _toast,
+                    seated: seated,
                   ),
                 ),
               ),
@@ -280,33 +261,63 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: _StepAside(
-                  hidden: _sheetOpen,
-                  offset: const Offset(0, 0.3),
-                  child: SafeArea(
-                    top: false,
-                    minimum: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: StadiaSpace.md,
-                      ),
-                      child: Column(
+                child: SafeArea(
+                  top: false,
+                  minimum: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: StadiaSpace.md,
+                    ),
+                    child: MeasureSize(
+                      // The panel animates between its stages: follow it.
+                      onChange: (_) =>
+                          _measureSoon(const Duration(milliseconds: 160)),
+                      child: KeyedSubtree(
                         key: _bottomKey,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (state.step != BookingStep.stand)
-                            const _Legend().animate().fadeIn(
-                              duration: StadiaMotion.medium,
-                            ),
-                          const SizedBox(height: 10),
-                          SelectionCard(
-                            summary: value.machine.summarize(
-                              state,
-                              value.match,
-                            ),
-                            hint: l10n.tapStandHint,
+                        child: AnimatedSwitcher(
+                          duration: StadiaMotion.medium,
+                          switchInCurve: StadiaMotion.emphasized,
+                          switchOutCurve: Curves.easeIn,
+                          layoutBuilder: (current, previous) => Stack(
+                            alignment: Alignment.bottomCenter,
+                            children: [...previous, ?current],
                           ),
-                        ],
+                          transitionBuilder: (child, animation) =>
+                              FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween(
+                                    begin: const Offset(0, 0.12),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              ),
+                          child: seated
+                              ? SeatPanel(
+                                  key: _panelKey,
+                                  matchId: widget.matchId,
+                                  onTicket: _onTicket,
+                                )
+                              : Column(
+                                  key: const ValueKey('picking'),
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (state.step != BookingStep.stand)
+                                      const _Legend().animate().fadeIn(
+                                        duration: StadiaMotion.medium,
+                                      ),
+                                    const SizedBox(height: 10),
+                                    SelectionCard(
+                                      summary: value.machine.summarize(
+                                        state,
+                                        value.match,
+                                      ),
+                                      hint: l10n.tapStandHint,
+                                    ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ),
                   ),
@@ -333,6 +344,7 @@ class _TopBar extends StatelessWidget {
     required this.onBack,
     required this.onStepTap,
     required this.toast,
+    required this.seated,
   });
 
   final Key cardKey;
@@ -343,9 +355,13 @@ class _TopBar extends StatelessWidget {
   final ValueChanged<int> onStepTap;
   final String? toast;
 
+  /// The camera is in the seat: say so, and that the view can be turned.
+  final bool seated;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final note = toast;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         StadiaSpace.md,
@@ -409,35 +425,71 @@ class _TopBar extends StatelessWidget {
           ),
           AnimatedSwitcher(
             duration: StadiaMotion.medium,
-            child: toast == null
-                ? const SizedBox.shrink()
-                : Padding(
-                    key: ValueKey(toast),
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Center(
-                      child: GlassSurface(
-                        radius: StadiaRadii.pill,
-                        shadow: true,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 9,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const StadiaIcon(StadiaGlyph.info, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              toast!,
-                              style: StadiaText.label.copyWith(fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+            child: note != null
+                ? _Pill(
+                    key: ValueKey(note),
+                    glyph: StadiaGlyph.info,
+                    text: note,
+                  )
+                : seated
+                ? _Pill(
+                    key: const ValueKey('seated'),
+                    glyph: StadiaGlyph.orbit,
+                    text: '${l10n.viewFromSeat} · ${l10n.dragToLookAround}',
+                    quiet: true,
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A floating note under the top card (toast, or the seat-view hint). It
+/// never takes touches: the 3D underneath stays draggable.
+class _Pill extends StatelessWidget {
+  const _Pill({
+    super.key,
+    required this.glyph,
+    required this.text,
+    this.quiet = false,
+  });
+
+  final StadiaGlyph glyph;
+  final String text;
+  final bool quiet;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Center(
+          child: GlassSurface(
+            radius: StadiaRadii.pill,
+            shadow: !quiet,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                StadiaIcon(glyph, size: 16),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: StadiaText.label.copyWith(
+                      fontSize: 13,
+                      color: quiet ? StadiaColors.textSecondary : null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -494,37 +546,6 @@ class _SceneLoading extends StatelessWidget {
             const SizedBox(height: 20),
             Text(context.l10n.loadingStadium, style: StadiaText.label),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Slides and fades a floating card out of the way (while the seat sheet is
-/// open) and ignores touches meanwhile.
-class _StepAside extends StatelessWidget {
-  const _StepAside({
-    required this.hidden,
-    required this.offset,
-    required this.child,
-  });
-
-  final bool hidden;
-  final Offset offset;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      ignoring: hidden,
-      child: AnimatedSlide(
-        offset: hidden ? offset : Offset.zero,
-        duration: StadiaMotion.medium,
-        curve: StadiaMotion.emphasized,
-        child: AnimatedOpacity(
-          opacity: hidden ? 0 : 1,
-          duration: StadiaMotion.medium,
-          child: child,
         ),
       ),
     );

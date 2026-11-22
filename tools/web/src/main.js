@@ -1,17 +1,15 @@
 // Stadia 3D viewer: stadium.glb + picking + camera fly-to + Flutter bridge.
 // Modes (URL ?mode=): picker (default) | intro. Add &debug for stats and,
-// in a plain browser, the dev harness in dev.js.
+// in a plain browser, the dev harness in dev.js. At the buy step the camera
+// sits in the chosen seat: the live, full-screen view from that seat.
 import './compat.js';
 import {
   AdditiveBlending,
   CanvasTexture,
   Fog,
   MathUtils,
-  Mesh,
-  MeshBasicMaterial,
   PerspectiveCamera,
   Raycaster,
-  RingGeometry,
   Scene,
   SRGBColorSpace,
   Sprite,
@@ -19,11 +17,10 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
-  WebGLRenderTarget,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { hasHost, onMessage, post, setReady } from './bridge.js';
-import { azimuthLimits, boxCorners, dirFrom, easeInOutCubic, Rig, UP } from './camera.js';
+import { azimuthLimits, boxCorners, dirFrom, easeInOutCubic, Rig } from './camera.js';
 import { availColor, availCss, PALETTE } from './colors.js';
 import { installDevHarness } from './dev.js';
 import { Labels } from './labels.js';
@@ -77,12 +74,11 @@ const S = {
   hover: null, // {level, id}
   press: null,
   external: null,
-  natural: false, // true while rendering the view from a seat
+  seated: false, // buy step: first person from the seat, natural colours
 };
 
 let model = null;
 let seatBlock = null;
-let ring = null;
 let glows = [];
 let dirty = true;
 let roofOpacity = 1;
@@ -154,29 +150,45 @@ function blockView(b) {
   }), 0.96);
 }
 
-function seatView(seatId) {
+// First person from the seat: a seated fan's eyes (EYE m above the tread),
+// turning the head around a point LOOK m in front of them.
+const EYE = 1.15;
+const LOOK = 0.25;
+
+/** The fan's eye position for a seat id, in world space. */
+function eyeAt(seatId) {
   const ref = parseSeatId(seatId);
   const b = ref && model.blocks.get(ref.block);
-  if (!b || !seatBlock) return null;
-  const st = model.stands.get(b.stand);
-  const inward = st.out.clone().negate();
-  const target = seatBlock.seatPosition(seatId, 0.5);
-  const pts = [];
-  for (const a of [-4, 4]) {
-    for (const u of [-2.5, 2.5]) {
-      for (const h of [-1, 1.5]) {
-        pts.push(target.clone().addScaledVector(st.side, a).addScaledVector(st.out, u).addScaledVector(UP, h));
-      }
-    }
-  }
-  const dir = dirFrom(inward, st.side, 0.72, 0.28);
-  return rig.view(target, dir, pts, (d) => ({
-    minDistance: 3,
-    maxDistance: d * 3,
-    minPolar: 0.12,
-    maxPolar: 1.42,
-    ...azimuthLimits(inward, 1.2),
-  }));
+  if (!b || !b.seats || !b.seatInfo) return null;
+  const { w, d, rise } = b.seatInfo;
+  b.seats.updateMatrixWorld();
+  const eye = new Vector3((ref.seat - 0.5) * w, (ref.row - 1) * rise + EYE, -((ref.row - 1) * d + 0.44));
+  return { eye: eye.applyMatrix4(b.seats.matrixWorld), stand: model.stands.get(b.stand) };
+}
+
+function seatView(seatId) {
+  const at = eyeAt(seatId);
+  if (!at || !at.stand) return null;
+  const { eye, stand } = at;
+  // Face the pitch: between the centre spot and the touchline ahead.
+  const focus = eye.clone().addScaledVector(stand.out, -70).multiplyScalar(0.4).setY(1.2);
+  const look = focus.sub(eye).normalize();
+  const back = look.clone().negate(); // target -> camera, as OrbitControls sees it
+  return {
+    target: eye.clone().addScaledVector(look, LOOK),
+    position: eye,
+    dist: LOOK,
+    limits: {
+      minDistance: LOOK,
+      maxDistance: LOOK,
+      // Polar angle of target -> camera: below 90° looks down at the pitch.
+      minPolar: Math.PI / 2 - 1.05,
+      maxPolar: Math.PI / 2 + 0.5,
+      ...azimuthLimits(new Vector3(back.x, 0, back.z).normalize(), 1.9),
+      zoom: false,
+      rotateSpeed: -0.34,
+    },
+  };
 }
 
 function viewForState() {
@@ -197,7 +209,7 @@ function tone(mesh, avail, dim, hover) {
 }
 
 function highlighted() {
-  return S.natural ? null : S.press || S.hover || S.external;
+  return S.seated ? null : S.press || S.hover || S.external;
 }
 
 function applyColors() {
@@ -207,15 +219,15 @@ function applyColors() {
   for (const st of model.stands.values()) {
     const selected = st.id === S.stand;
     let dim = 0;
-    if (S.natural) dim = 0;
+    if (S.seated) dim = 0;
     else if (S.step === 'stand') dim = S.standAvail[st.id] === 0 ? 0.7 : 0;
     else dim = selected ? 0 : S.step === 'block' ? 0.8 : 0.86;
     const standHover = hl && hl.level === 'stand' && hl.id === st.id ? 0.3 : 0;
     for (const m of st.meshes) tone(m, null, dim, standHover);
     for (const b of st.blocks) {
-      const showAvail = !S.natural && selected && S.step !== 'stand';
+      const showAvail = !S.seated && selected && S.step !== 'stand';
       const avail = showAvail ? availColor(S.blockAvail[b.id]) : null;
-      const bDim = !S.natural && selected && picking && b.id !== S.block ? 0.55 : dim;
+      const bDim = !S.seated && selected && picking && b.id !== S.block ? 0.55 : dim;
       const bHover = hl && hl.level === 'block' && hl.id === b.id ? 0.32 : standHover;
       tone(b.steps, null, bDim, bHover);
       tone(b.seats, avail, bDim, bHover);
@@ -226,7 +238,7 @@ function applyColors() {
 
 function syncSeatBlock() {
   if (!model) return;
-  const want = !S.natural && (S.step === 'seat' || S.step === 'buy') ? S.block : null;
+  const want = !S.seated && S.step === 'seat' ? S.block : null;
   if (seatBlock && seatBlock.blockId !== want) {
     const old = model.blocks.get(seatBlock.blockId);
     if (old && old.seats) old.seats.visible = true;
@@ -246,7 +258,7 @@ function syncSeatBlock() {
     const sold = S.seatAvail && S.seatAvail.block === seatBlock.blockId ? S.seatAvail.sold : null;
     seatBlock.paint({
       sold,
-      selected: S.step === 'buy' ? S.seat : null,
+      selected: null,
       hover: hl && hl.level === 'seat' ? hl.id : null,
     });
   }
@@ -446,13 +458,18 @@ function onSetStep(m) {
   S.stand = m.stand || null;
   S.block = m.block || null;
   S.seat = m.seat || null;
+  S.seated = S.step === 'buy' && !!S.seat;
   S.hover = null;
   S.press = null;
   syncSeatBlock();
   applyColors();
   syncLabels();
   const same = prev.step === S.step && prev.stand === S.stand && prev.block === S.block && prev.seat === S.seat;
-  if (!same && MODE === 'picker') rig.flyTo(viewForState(), prev.step === S.step ? 900 : 1150);
+  if (!same && MODE === 'picker') {
+    // Into (or out of) the seat is a longer, lower flight.
+    const seatMove = S.step === 'buy' || prev.step === 'buy';
+    rig.flyTo(viewForState(), seatMove ? 1500 : prev.step === S.step ? 900 : 1150);
+  }
 }
 
 function onAvailability(m) {
@@ -502,9 +519,6 @@ onMessage((m) => {
     case 'insets':
       onInsets(m);
       break;
-    case 'renderView':
-      renderSeatView(m.seat, m.requestId);
-      break;
     case 'skipIntro':
       finishIntro();
       break;
@@ -512,62 +526,6 @@ onMessage((m) => {
       break; // init and unknown types
   }
 });
-
-// -------------------------------------------------------- view from seat
-
-const viewCam = new PerspectiveCamera(62, 2, 0.1, 2600);
-
-function renderSeatView(seatId, requestId) {
-  const reply = (dataUrl) => post({ type: 'view', requestId, seat: seatId, dataUrl });
-  const ref = parseSeatId(seatId);
-  const b = ref && model && model.blocks.get(ref.block);
-  if (!b || !b.seatInfo) return reply('');
-  const st = model.stands.get(b.stand);
-  const { w, d, rise } = b.seatInfo;
-  const eye = new Vector3((ref.seat - 0.5) * w, (ref.row - 1) * rise + 1.18, -((ref.row - 1) * d + 0.44))
-    .applyMatrix4(b.seats.matrixWorld);
-  const ahead = eye.clone().addScaledVector(st.out, -70);
-  const target = new Vector3().lerp(ahead, 0.4).setY(1.2);
-  viewCam.position.copy(eye);
-  viewCam.lookAt(target);
-
-  const W = 1280;
-  const H = 640;
-  const rt = new WebGLRenderTarget(W, H, { samples: 4, colorSpace: SRGBColorSpace });
-  S.natural = true;
-  applyColors();
-  syncSeatBlock();
-  setRoof(1);
-  const ringVisible = ring.visible;
-  ring.visible = false;
-  try {
-    renderer.setRenderTarget(rt);
-    renderer.render(scene, viewCam);
-    const px = new Uint8Array(W * H * 4);
-    renderer.readRenderTargetPixels(rt, 0, 0, W, H, px);
-    const c2 = document.createElement('canvas');
-    c2.width = W;
-    c2.height = H;
-    const ctx = c2.getContext('2d');
-    const img = ctx.createImageData(W, H);
-    const row = W * 4;
-    for (let y = 0; y < H; y++) img.data.set(px.subarray((H - 1 - y) * row, (H - y) * row), y * row);
-    ctx.putImageData(img, 0, 0);
-    reply(c2.toDataURL('image/jpeg', 0.84));
-  } catch (err) {
-    console.error(err);
-    reply('');
-  } finally {
-    renderer.setRenderTarget(null);
-    rt.dispose();
-    S.natural = false;
-    ring.visible = ringVisible;
-    applyColors();
-    syncSeatBlock();
-    setRoof(roofOpacity);
-    dirty = true;
-  }
-}
 
 // ------------------------------------------------------------------ intro
 
@@ -647,36 +605,6 @@ function addExtras() {
     scene.add(s);
     return s;
   });
-
-  ring = new Mesh(
-    new RingGeometry(0.34, 0.5, 40),
-    new MeshBasicMaterial({ color: 0xffffff, transparent: true, depthTest: false, fog: false }),
-  );
-  ring.renderOrder = 10;
-  ring.visible = false;
-  scene.add(ring);
-}
-
-const ringPos = new Vector3();
-
-function updateRing(time) {
-  const show = S.step === 'buy' && !!seatBlock && !!S.seat;
-  if (!show) {
-    if (ring.visible) {
-      ring.visible = false;
-      dirty = true;
-    }
-    return false;
-  }
-  if (!seatBlock.seatPosition(S.seat, 1.15, ringPos)) return false;
-  ring.visible = true;
-  ring.position.copy(ringPos);
-  ring.quaternion.copy(camera.quaternion);
-  const pulse = 0.5 + 0.5 * Math.sin(time * 4.2);
-  const scale = Math.max(0.6, camera.position.distanceTo(ringPos) * 0.045) * (1 + 0.16 * pulse);
-  ring.scale.setScalar(scale);
-  ring.material.opacity = 0.65 + 0.35 * pulse;
-  return true;
 }
 
 // ------------------------------------------------------------------- loop
@@ -722,14 +650,15 @@ function frame(now) {
   }
   processHover();
 
-  const roofTarget = MODE === 'intro' || S.step === 'stand' ? 1 : 0;
+  // Roof on for the overview, off while choosing, back on once seated (it
+  // is part of the real view, so it returns after the flight lands).
+  const roofTarget = MODE === 'intro' || S.step === 'stand' || (S.seated && !rig.flying) ? 1 : 0;
   if (Math.abs(roofTarget - roofOpacity) > 0.001) {
     roofOpacity += (roofTarget - roofOpacity) * Math.min(1, dt * 5);
     if (Math.abs(roofTarget - roofOpacity) < 0.01) roofOpacity = roofTarget;
     setRoof(roofOpacity);
     moving = true;
   }
-  if (updateRing(now / 1000)) moving = true;
   updateNear();
 
   if (moving || dirty || SPIN) {
@@ -788,9 +717,8 @@ async function boot() {
       // Finish flights/fades now (background tabs throttle rAF).
       settle() {
         while (rig.flying) rig.update(0.1);
-        roofOpacity = MODE === 'intro' || S.step === 'stand' ? 1 : 0;
+        roofOpacity = MODE === 'intro' || S.step === 'stand' || S.seated ? 1 : 0;
         setRoof(roofOpacity);
-        updateRing(performance.now() / 1000);
         updateNear();
         render();
         return { step: S.step, calls: renderer.info.render.calls };

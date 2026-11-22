@@ -4,6 +4,7 @@
 ///   {type: "init", mode: "intro" | "picker"}
 ///   {type: "setStep", step: "stand" | "block" | "seat" | "buy",
 ///        stand?: "E", block?: "E_104", seat?: "E_104_R12_S7"}
+///        ("buy" puts the camera in the seat: the live view from it)
 ///   {type: "availability", level: "stand" | "block",
 ///        items: {"E": 0.42, ...}}                    free ratio 0..1
 ///   {type: "availability", level: "seat", block: "E_104",
@@ -11,14 +12,12 @@
 ///   {type: "highlight", id: "Block_E_104" | null}
 ///   {type: "labels", items: {"N": "North Stand", ...}}
 ///   {type: "insets", top: 196, bottom: 232}         px hidden by Flutter UI
-///   {type: "renderView", seat: "E_104_R12_S7", requestId: "v3"}
 ///   {type: "skipIntro"}
 ///
 /// JS -> Flutter: `StadiaBridge.postMessage(<json>)`
 ///   {type: "ready"}
 ///   {type: "select", level: "stand" | "block" | "seat", id: "..."}
 ///   {type: "introDone"}
-///   {type: "view", requestId: "v3", seat: "...", dataUrl: "data:image/jpeg;base64,..."}
 ///   {type: "error", message: "..."}
 ///   {type: "stats", fps: 60, calls: 120, triangles: 40000}
 library;
@@ -39,16 +38,12 @@ sealed class SceneEvent {
       case 'introDone':
         return const SceneIntroDone();
       case 'select':
-        final level =
-            SceneLevel.values.where((l) => l.name == json['level']).firstOrNull;
+        final level = SceneLevel.values
+            .where((l) => l.name == json['level'])
+            .firstOrNull;
         final id = json['id'];
         if (level == null || id is! String) return null;
         return SceneSelect(level, id);
-      case 'view':
-        final requestId = json['requestId'];
-        final dataUrl = json['dataUrl'];
-        if (requestId is! String || dataUrl is! String) return null;
-        return SceneView(requestId, dataUrl);
       case 'error':
         return SceneError('${json['message']}');
       case 'stats':
@@ -74,12 +69,6 @@ class SceneSelect extends SceneEvent {
   const SceneSelect(this.level, this.id);
   final SceneLevel level;
   final String id;
-}
-
-class SceneView extends SceneEvent {
-  const SceneView(this.requestId, this.dataUrl);
-  final String requestId;
-  final String dataUrl;
 }
 
 class SceneError extends SceneEvent {
