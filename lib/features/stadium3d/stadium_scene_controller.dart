@@ -77,6 +77,20 @@ class StadiumSceneController {
   void highlight(String? meshName) =>
       send({'type': 'highlight', 'id': meshName});
 
+  /// Stand names for the in-scene labels.
+  void sendLabels(Stadium stadium) => send({
+        'type': 'labels',
+        'items': {for (final s in stadium.stands) s.id: s.name},
+      });
+
+  /// How much of the view the Flutter UI covers, so the scene frames its
+  /// camera in the visible part.
+  void setInsets({required double top, required double bottom}) => send({
+        'type': 'insets',
+        'top': top.round(),
+        'bottom': bottom.round(),
+      });
+
   void setStep(BookingState state) => send({
         'type': 'setStep',
         'step': state.step.name,

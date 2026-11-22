@@ -72,7 +72,8 @@ class StadiaButton extends StatelessWidget {
       height: height,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Center(child: content),
+        // widthFactor 1 lets a non-expanding button hug its label.
+        child: Center(widthFactor: expand ? null : 1, child: content),
       ),
     );
 

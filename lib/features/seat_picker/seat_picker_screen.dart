@@ -38,17 +38,23 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
   bool _sheetOpen = false;
   String? _toast;
   Timer? _toastTimer;
+  final _topCardKey = GlobalKey();
+  final _bottomKey = GlobalKey();
+  Timer? _insetsTimer;
+  (double, double)? _insets;
 
   @override
   void initState() {
     super.initState();
     _events = _scene.events.listen(_onSceneEvent);
     _scene.init(SceneMode.picker);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reportInsets());
   }
 
   @override
   void dispose() {
     _toastTimer?.cancel();
+    _insetsTimer?.cancel();
     unawaited(_events.cancel());
     _scene.dispose();
     super.dispose();
@@ -85,9 +91,35 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
     final ctx = ref.read(bookingContextProvider(widget.matchId)).value;
     if (ctx == null) return;
     _scene
+      ..sendLabels(ctx.stadium)
       ..sendStandAvailability(ctx.stadium, ctx.availability)
       ..sendBlockAvailability(ctx.stadium, ctx.availability);
+    _insets = null;
+    _reportInsets();
     _syncStep(ref.read(bookingControllerProvider(widget.matchId)));
+  }
+
+  /// Tells the scene how much of it the glass cards cover, so the camera
+  /// frames stands / blocks / seats in the visible middle.
+  void _reportInsets() {
+    if (!mounted || _sheetOpen) return;
+    final top = _topCardKey.currentContext?.findRenderObject();
+    final bottom = _bottomKey.currentContext?.findRenderObject();
+    if (top is! RenderBox || bottom is! RenderBox) return;
+    if (!top.hasSize || !bottom.hasSize) return;
+    final height = MediaQuery.sizeOf(context).height;
+    final t = top.localToGlobal(Offset(0, top.size.height)).dy + 8;
+    final b = height - bottom.localToGlobal(Offset.zero).dy + 8;
+    final next = (t.roundToDouble(), b.roundToDouble());
+    if (next == _insets) return;
+    _insets = next;
+    _scene.setInsets(top: next.$1, bottom: next.$2);
+  }
+
+  /// Re-measure once the bottom card has finished resizing.
+  void _measureSoon() {
+    _insetsTimer?.cancel();
+    _insetsTimer = Timer(const Duration(milliseconds: 420), _reportInsets);
   }
 
   void _syncStep(BookingState state) {
@@ -113,7 +145,10 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
         previous.standId != next.standId ||
         previous.blockId != next.blockId ||
         previous.seat != next.seat;
-    if (stepChanged) _syncStep(next);
+    if (stepChanged) {
+      _syncStep(next);
+      _measureSoon();
+    }
     if (next.step == BookingStep.buy &&
         previous?.step != BookingStep.buy &&
         !_sheetOpen) {
@@ -198,6 +233,7 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
                   child: SafeArea(
                     bottom: false,
                     child: _TopBar(
+                      cardKey: _topCardKey,
                       title: value.match.title,
                       subtitle: '${formatMatchDate(value.match.kickoff)} · '
                           '${formatTime(value.match.kickoff)} · '
@@ -222,6 +258,7 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
                         horizontal: StadiaSpace.md,
                       ),
                       child: Column(
+                        key: _bottomKey,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (state.step != BookingStep.stand)
@@ -250,6 +287,7 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
 
 class _TopBar extends StatelessWidget {
   const _TopBar({
+    required this.cardKey,
     required this.title,
     required this.subtitle,
     required this.step,
@@ -258,6 +296,7 @@ class _TopBar extends StatelessWidget {
     required this.toast,
   });
 
+  final Key cardKey;
   final String title;
   final String subtitle;
   final BookingStep step;
@@ -278,6 +317,7 @@ class _TopBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GlassSurface(
+            key: cardKey,
             padding: const EdgeInsets.fromLTRB(8, 8, 16, 14),
             child: Column(
               children: [

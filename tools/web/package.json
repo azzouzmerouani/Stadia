@@ -1,0 +1,14 @@
+{
+  "name": "stadia-web",
+  "private": true,
+  "description": "Three.js stadium viewer bundled into assets/web for the Stadia app (offline, no CDN).",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "serve": "node serve.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.187.0"
+  }
+}

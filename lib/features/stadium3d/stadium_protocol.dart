@@ -9,6 +9,8 @@
 ///   {type: "availability", level: "seat", block: "E_104",
 ///        rows: 24, seats: 30, sold: [0, 5, ...]}     row-major indexes
 ///   {type: "highlight", id: "Block_E_104" | null}
+///   {type: "labels", items: {"N": "North Stand", ...}}
+///   {type: "insets", top: 196, bottom: 232}         px hidden by Flutter UI
 ///   {type: "renderView", seat: "E_104_R12_S7", requestId: "v3"}
 ///   {type: "skipIntro"}
 ///

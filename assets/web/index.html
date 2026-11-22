@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Stadia 3D</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #071327;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    canvas#stage {
+      display: block;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      outline: none;
+    }
+    #labels {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #fff;
+    }
+    .lbl {
+      position: absolute;
+      left: 0;
+      top: 0;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(7, 19, 39, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      white-space: nowrap;
+      will-change: transform;
+      transition: opacity 0.25s ease;
+    }
+    .lbl.stand { font-size: 13px; padding: 6px 11px; }
+    .lbl.block { font-size: 10.5px; padding: 3px 7px; background: rgba(7, 19, 39, 0.7); }
+    .lbl.block .dot { width: 5px; height: 5px; margin-right: 4px; }
+    .lbl .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: 1px;
+    }
+    .lbl.sold { color: rgba(255, 255, 255, 0.45); }
+    .lbl.on { border-color: rgba(255, 255, 255, 0.85); }
+    #fade {
+      position: fixed;
+      inset: 0;
+      background: #071327;
+      opacity: 1;
+      transition: opacity 1.4s ease;
+      pointer-events: none;
+    }
+    #debug {
+      position: fixed;
+      left: 8px;
+      bottom: 8px;
+      font: 11px/1.3 ui-monospace, Menlo, monospace;
+      color: #8dc9ff;
+      pointer-events: none;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <div id="labels"></div>
+  <div id="fade"></div>
+  <div id="debug"></div>
+  <script>
+    // Surface load/runtime failures to Flutter (no console there).
+    (function () {
+      function report(message) {
+        var b = window.StadiaBridge;
+        if (b && b.postMessage) b.postMessage(JSON.stringify({ type: 'error', message: String(message) }));
+      }
+      window.addEventListener('error', function (e) { report((e && e.message) || 'script error'); });
+      window.addEventListener('unhandledrejection', function (e) { report((e && e.reason && e.reason.message) || e.reason || 'rejection'); });
+    })();
+  </script>
+  <script src="stadium.js"></script>
+</body>
+</html>
