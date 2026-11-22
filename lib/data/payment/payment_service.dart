@@ -4,7 +4,7 @@ library;
 
 enum PaymentMethod {
   cib('CIB', 'Interbank card'),
-  edahabia('Edahabia', 'Algérie Poste card');
+  edahabia('Edahabia', 'Algérie Poste');
 
   const PaymentMethod(this.label, this.caption);
 

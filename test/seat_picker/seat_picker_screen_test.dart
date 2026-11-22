@@ -44,7 +44,7 @@ const matchId = 'mco-mca-2026-11-28';
 
 void main() {
   late StadiumSceneController scene;
-  late Completer<void> sheet;
+  late Completer<String?> sheet;
   late int sheetOpened;
 
   Future<ProviderContainer> pumpPicker(WidgetTester tester) async {
@@ -60,7 +60,7 @@ void main() {
           seatSheetLauncherProvider.overrideWithValue(
             (context, {required matchId, required scene}) {
               sheetOpened++;
-              sheet = Completer<void>();
+              sheet = Completer<String?>();
               return sheet.future;
             },
           ),
@@ -141,6 +141,7 @@ void main() {
     sheet.complete();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump(const Duration(milliseconds: 400)); // cards slide back
     expect(state().step, BookingStep.seat);
     expect(state().seat, isNull);
 

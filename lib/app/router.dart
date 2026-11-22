@@ -6,6 +6,7 @@ import '../features/map/map_screen.dart';
 import '../features/seat_picker/seat_picker_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/stadium3d/intro_screen.dart';
+import '../features/ticket/ticket_screen.dart';
 import 'routes.dart';
 
 export 'routes.dart';
@@ -43,6 +44,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _fade(
           state,
           SeatPickerScreen(matchId: state.pathParameters['matchId']!),
+        ),
+      ),
+      GoRoute(
+        path: '/ticket/:ticketId',
+        pageBuilder: (context, state) => _fade(
+          state,
+          TicketScreen(ticketId: state.pathParameters['ticketId']!),
         ),
       ),
     ],
