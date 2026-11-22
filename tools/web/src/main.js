@@ -26,6 +26,7 @@ import { installDevHarness } from './dev.js';
 import { Labels } from './labels.js';
 import { loadStadium } from './model.js';
 import { parseSeatId, SeatBlock } from './seats.js';
+import { HORIZON, Sky } from './sky.js';
 
 const params = new URLSearchParams(window.location.search);
 const MODE = params.get('mode') === 'intro' ? 'intro' : 'picker';
@@ -47,10 +48,13 @@ renderer.outputColorSpace = SRGBColorSpace;
 renderer.shadowMap.enabled = false;
 
 const scene = new Scene();
-scene.background = PALETTE.bg.clone();
-scene.fog = new Fog(PALETTE.bg.clone(), 460, 1150);
+scene.background = HORIZON.clone();
+// The city runs out to ~1.6 km: it fades into the horizon colour.
+scene.fog = new Fog(HORIZON.clone(), 750, 2500);
 
-const camera = new PerspectiveCamera(55, 1, 0.5, 2600);
+const camera = new PerspectiveCamera(55, 1, 0.5, 3400);
+const sky = new Sky(3000);
+scene.add(sky.group);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.085;
@@ -118,7 +122,7 @@ function overviewView() {
   const dir = dirFrom(new Vector3(0, 0, 1), new Vector3(1, 0, 0), 0.92, 0.2);
   return rig.view(target, dir, boxCorners(model.bowl), (d) => ({
     minDistance: d * 0.45,
-    maxDistance: d * 1.5,
+    maxDistance: d * 2.2, // far enough to see the city round the stadium
     minPolar: 0.12,
     maxPolar: 1.3,
   }));
@@ -545,7 +549,7 @@ function updateIntro(dt) {
   const e = easeInOutCubic(k);
   const az = MathUtils.lerp(-1.25, 0.2, e) + (intro.done ? (intro.t - INTRO_SECONDS) * 0.03 : 0);
   const el = MathUtils.lerp(0.2, 0.86, e);
-  const r = intro.dist * MathUtils.lerp(1.28, 1.0, e);
+  const r = intro.dist * MathUtils.lerp(2.0, 1.0, e); // from over the city
   const dir = dirFrom(new Vector3(0, 0, 1), new Vector3(1, 0, 0), el, az);
   camera.position.copy(intro.target).addScaledVector(dir, r);
   camera.lookAt(intro.target);
@@ -616,6 +620,7 @@ let renderMs = 0;
 
 function render() {
   const t0 = performance.now();
+  sky.follow(camera);
   renderer.render(scene, camera);
   renderMs = performance.now() - t0;
   labels.update(camera, viewW, viewH);

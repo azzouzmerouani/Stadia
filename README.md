@@ -99,16 +99,29 @@ script builds the whole bowl from it. Because of that, mesh names
 blender -b --factory-startup -P tools/blender/build_stadium.py -- --config assets/data/stadium.json --out assets/3d/stadium.glb
 ```
 
-Options after `--`: `--no-draco` (bigger, easier to inspect) and
+Options after `--`: `--no-draco` (bigger, easier to inspect),
+`--no-env` (the stadium alone, without its surroundings) and
 `--blend out.blend` (also save the scene). Install Blender with
 `brew install --cask blender` on macOS. The script was written against
-Blender 4.5 LTS.
+Blender 4.5 LTS. A run takes about a minute.
 
-What it produces (Draco-compressed, about 350 KB, budget 5 MB):
+What it produces (Draco-compressed, about 750 KB and 122k triangles,
+budget 5 MB):
 
 - pitch and markings, athletics track;
 - 4 two-tier stands with 56 blocks and merged seat rows;
-- red VIP seating in the West Stand, roof ring, floodlights and concourse.
+- red VIP seating in the West Stand, roof ring, floodlights and concourse;
+- the surroundings at night (`Env_*` meshes, from a fixed seed so every run
+  is the same): a stylised Bir El Djir with the sea and a coastal highway to
+  the north, a ridge to the west, the ring road, palm-lined plaza and car
+  parks round the stadium, a boulevard and roundabout to the south, an
+  aquatic centre, a sports hall and two lit training pitches, then about
+  1,150 city blocks with lit windows, street lights and cars out to 1.6 km.
+
+The viewer draws the night sky itself (`tools/web/src/sky.js`: gradient
+dome, stars, moon), with fog in the horizon colour so the far city fades
+into it. The surroundings are not pickable and never move the camera
+framing, which uses the stands and roof only.
 
 Lighting is baked into vertex colours, so the viewer needs no lights or
 shadows. Selectable meshes are named `Stand_<S>`, `Block_<S>_<nnn>` and
