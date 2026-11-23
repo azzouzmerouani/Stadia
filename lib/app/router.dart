@@ -6,6 +6,7 @@ import '../features/map/map_screen.dart';
 import '../features/seat_picker/seat_picker_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/stadium3d/intro_screen.dart';
+import '../features/team/team_picker_screen.dart';
 import '../features/ticket/ticket_screen.dart';
 import 'routes.dart';
 
@@ -30,6 +31,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.splash,
         pageBuilder: (context, state) => _fade(state, const SplashScreen()),
+      ),
+      GoRoute(
+        path: Routes.team,
+        pageBuilder: (context, state) => _fade(state, const TeamPickerScreen()),
       ),
       GoRoute(
         path: Routes.intro,

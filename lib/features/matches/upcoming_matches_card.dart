@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
+import '../../data/favourite_team.dart';
+import '../../data/models/match.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
 import '../../ui/glass.dart';
@@ -25,6 +27,7 @@ class UpcomingMatchesCard extends ConsumerStatefulWidget {
 class _UpcomingMatchesCardState extends ConsumerState<UpcomingMatchesCard> {
   final _pages = PageController(viewportFraction: 0.9);
   int _index = 0;
+  bool _positioned = false;
 
   @override
   void dispose() {
@@ -39,10 +42,36 @@ class _UpcomingMatchesCardState extends ConsumerState<UpcomingMatchesCard> {
     return ((_pages.page ?? 0) - i).abs().clamp(0.0, 1.0);
   }
 
+  /// Opens on the favourite club's first match, once.
+  void _startAtFavourite(List<FootballMatch> list, String? favourite) {
+    if (_positioned || favourite == null) return;
+    _positioned = true;
+    final i = list.indexWhere((m) => m.involves(favourite));
+    if (i <= 0) return;
+    _index = i;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _pages.hasClients) _pages.jumpToPage(i);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final matches = ref.watch(upcomingMatchesProvider);
     final stadium = ref.watch(stadiumProvider).value;
+    final favourite = ref.watch(favouriteTeamProvider);
+    // This stadium's matches only.
+    final matches = ref
+        .watch(upcomingMatchesProvider)
+        .whenData(
+          (all) => stadium == null
+              ? all
+              : [
+                  for (final m in all)
+                    if (m.stadiumId == stadium.id) m,
+                ],
+        );
+    if (matches.value case final list? when stadium != null) {
+      _startAtFavourite(list, favourite);
+    }
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Padding(
@@ -99,6 +128,8 @@ class _UpcomingMatchesCardState extends ConsumerState<UpcomingMatchesCard> {
                       child: MatchCard(
                         match: value[i],
                         stadium: stadium,
+                        featured:
+                            favourite != null && value[i].involves(favourite),
                         onChooseSeats: () =>
                             context.push(Routes.seats(value[i].id)),
                       ),

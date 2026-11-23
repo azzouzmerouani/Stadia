@@ -22,8 +22,37 @@ final paymentServiceProvider = Provider<PaymentService>(
   (ref) => MockPaymentService(),
 );
 
+/// The stadium the app is showing (intro, map, its matches). Set from the
+/// favourite team, or by the user switching stadium on the map.
+class CurrentStadium extends Notifier<String> {
+  @override
+  String build() => LocalStadiumRepository.defaultStadiumIds.first;
+
+  void select(String stadiumId) => state = stadiumId;
+}
+
+final currentStadiumIdProvider = NotifierProvider<CurrentStadium, String>(
+  CurrentStadium.new,
+);
+
+/// The current stadium (see [currentStadiumIdProvider]).
 final stadiumProvider = FutureProvider<Stadium>(
-  (ref) => ref.watch(stadiumRepositoryProvider).fetchStadium(),
+  (ref) => ref
+      .watch(stadiumRepositoryProvider)
+      .fetchStadium(ref.watch(currentStadiumIdProvider)),
+);
+
+/// Any stadium, e.g. the one a match is played at.
+final stadiumByIdProvider = FutureProvider.family<Stadium, String>(
+  (ref, id) => ref.watch(stadiumRepositoryProvider).fetchStadium(id),
+);
+
+final stadiumsProvider = FutureProvider<List<Stadium>>(
+  (ref) => ref.watch(stadiumRepositoryProvider).fetchStadiums(),
+);
+
+final teamsProvider = FutureProvider<List<Team>>(
+  (ref) => ref.watch(stadiumRepositoryProvider).fetchTeams(),
 );
 
 final upcomingMatchesProvider = FutureProvider<List<FootballMatch>>(

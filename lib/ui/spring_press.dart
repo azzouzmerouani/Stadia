@@ -33,8 +33,10 @@ class _SpringPressState extends State<SpringPress>
     damping: 19,
   );
 
-  late final AnimationController _scale =
-      AnimationController.unbounded(vsync: this, value: 1);
+  late final AnimationController _scale = AnimationController.unbounded(
+    vsync: this,
+    value: 1,
+  );
 
   bool get _enabled => widget.onTap != null;
 

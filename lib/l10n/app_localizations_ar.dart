@@ -324,4 +324,55 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get skip => 'تخطي';
+
+  @override
+  String rowCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count صف',
+      many: '$count صفًا',
+      few: '$count صفوف',
+      two: 'صفان',
+      one: 'صف واحد',
+      zero: 'لا صفوف',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get pickTeamOverline => 'قبل الذهاب إلى الملعب';
+
+  @override
+  String get pickTeamTitle => 'اختر فريقك المفضل';
+
+  @override
+  String get pickTeamBody => 'سنأخذك إلى ملعبه ونضع مبارياته أولًا.';
+
+  @override
+  String get pickTeamFirst => 'اختر فريقًا للمتابعة';
+
+  @override
+  String get goToStadium => 'إلى الملعب';
+
+  @override
+  String get nextMatch => 'المباراة القادمة';
+
+  @override
+  String get noMatchYet => 'لا تذاكر معروضة بعد';
+
+  @override
+  String get yourTeam => 'فريقك';
+
+  @override
+  String get changeTeam => 'تغيير الفريق';
+
+  @override
+  String get stadiumsTitle => 'الملاعب';
+
+  @override
+  String get changeStadium => 'تغيير الملعب';
+
+  @override
+  String get youAreHere => 'أنت هنا';
 }

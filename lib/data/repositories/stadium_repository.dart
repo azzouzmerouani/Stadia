@@ -16,8 +16,16 @@ class SeatUnavailableException implements Exception {
 /// bundled mock JSON; a `SupabaseStadiumRepository` can implement the same
 /// interface later (see README for the table layout).
 abstract interface class StadiumRepository {
-  Future<Stadium> fetchStadium();
+  /// Every stadium the app sells tickets for, the default one first.
+  Future<List<Stadium>> fetchStadiums();
 
+  /// One stadium by id; the default one when [id] is null.
+  Future<Stadium> fetchStadium([String? id]);
+
+  /// Clubs, in the order the team picker shows them.
+  Future<List<Team>> fetchTeams();
+
+  /// Upcoming matches at every stadium, soonest first.
   Future<List<FootballMatch>> fetchUpcomingMatches();
 
   Future<FootballMatch> fetchMatch(String matchId);

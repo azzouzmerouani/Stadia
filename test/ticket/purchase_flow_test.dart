@@ -61,7 +61,12 @@ void main() {
           paymentServiceProvider.overrideWithValue(
             MockPaymentService(delay: Duration.zero),
           ),
-          stadiumViewBuilderProvider.overrideWithValue((context, c, mode) {
+          stadiumViewBuilderProvider.overrideWithValue((
+            context,
+            c,
+            mode,
+            stadiumId,
+          ) {
             scene = c;
             if (!c.isAttached) c.attach((_) {});
             return const SizedBox.expand();

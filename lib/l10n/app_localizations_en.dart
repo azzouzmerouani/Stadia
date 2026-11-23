@@ -305,4 +305,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get skip => 'Skip';
+
+  @override
+  String rowCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rows',
+      one: '1 row',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get pickTeamOverline => 'Before the stadium';
+
+  @override
+  String get pickTeamTitle => 'Pick your team';
+
+  @override
+  String get pickTeamBody =>
+      'We\'ll take you to its stadium and put its matches first.';
+
+  @override
+  String get pickTeamFirst => 'Pick a team to continue';
+
+  @override
+  String get goToStadium => 'Go to the stadium';
+
+  @override
+  String get nextMatch => 'Next match';
+
+  @override
+  String get noMatchYet => 'No match on sale yet';
+
+  @override
+  String get yourTeam => 'Your team';
+
+  @override
+  String get changeTeam => 'Change team';
+
+  @override
+  String get stadiumsTitle => 'Stadiums';
+
+  @override
+  String get changeStadium => 'Change stadium';
+
+  @override
+  String get youAreHere => 'You\'re here';
 }

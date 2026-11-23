@@ -53,6 +53,7 @@ void main() {
             context,
             controller,
             mode,
+            stadiumId,
           ) {
             scene = controller;
             return const SizedBox.expand(key: Key('fake-3d'));

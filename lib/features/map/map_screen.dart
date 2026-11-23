@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../app/routes.dart';
+import '../../data/favourite_team.dart';
+import '../../data/models/match.dart';
 import '../../data/models/stadium.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
@@ -16,17 +20,47 @@ import 'widgets/map_header.dart';
 import 'widgets/osm_attribution.dart';
 import 'widgets/purple_tiles.dart';
 import 'widgets/stadium_marker.dart';
+import 'widgets/stadium_sheet.dart';
 
 class MapScreen extends ConsumerWidget {
   const MapScreen({super.key});
 
+  /// Another stadium: fly in to it (intro), then its map.
+  Future<void> _switchStadium(
+    BuildContext context,
+    WidgetRef ref,
+    String current,
+  ) async {
+    final stadiums = await ref.read(stadiumsProvider.future);
+    if (!context.mounted) return;
+    final id = await StadiumSheet.show(
+      context,
+      stadiums: stadiums,
+      current: current,
+    );
+    if (id == null || id == current || !context.mounted) return;
+    ref.read(currentStadiumIdProvider.notifier).select(id);
+    context.go(Routes.intro);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stadium = ref.watch(stadiumProvider);
+    final favourite = ref.watch(favouriteTeamProvider);
+    final team = ref
+        .watch(teamsProvider)
+        .value
+        ?.where((t) => t.id == favourite)
+        .firstOrNull;
     return Scaffold(
       backgroundColor: StadiaColors.page,
       body: switch (stadium) {
-        AsyncData(:final value) => _StadiumMap(stadium: value),
+        AsyncData(:final value) => _StadiumMap(
+          stadium: value,
+          team: team,
+          onChangeTeam: () => context.go(Routes.team),
+          onChangeStadium: () => _switchStadium(context, ref, value.id),
+        ),
         AsyncError(:final error) => Center(
           child: Text('$error', style: StadiaText.body),
         ),
@@ -37,9 +71,17 @@ class MapScreen extends ConsumerWidget {
 }
 
 class _StadiumMap extends StatefulWidget {
-  const _StadiumMap({required this.stadium});
+  const _StadiumMap({
+    required this.stadium,
+    required this.team,
+    required this.onChangeTeam,
+    required this.onChangeStadium,
+  });
 
   final Stadium stadium;
+  final Team? team;
+  final VoidCallback onChangeTeam;
+  final VoidCallback onChangeStadium;
 
   @override
   State<_StadiumMap> createState() => _StadiumMapState();
@@ -155,10 +197,17 @@ class _StadiumMapState extends State<_StadiumMap>
           right: 0,
           child: SafeArea(
             bottom: false,
-            child: MapHeader(city: s.city, onRecenter: _recenter)
-                .animate()
-                .fadeIn(duration: 400.ms)
-                .moveY(begin: -12, curve: StadiaMotion.emphasized),
+            child:
+                MapHeader(
+                      city: s.city,
+                      team: widget.team,
+                      onRecenter: _recenter,
+                      onChangeStadium: widget.onChangeStadium,
+                      onChangeTeam: widget.onChangeTeam,
+                    )
+                    .animate()
+                    .fadeIn(duration: 400.ms)
+                    .moveY(begin: -12, curve: StadiaMotion.emphasized),
           ),
         ),
         Positioned(

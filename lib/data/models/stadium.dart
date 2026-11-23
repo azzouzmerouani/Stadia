@@ -66,10 +66,10 @@ class Block {
   int seatIndex(int row, int seat) => (row - 1) * seatsPerRow + (seat - 1);
 
   SeatRef seatAt(int index) => SeatRef(
-        blockId: id,
-        row: index ~/ seatsPerRow + 1,
-        seat: index % seatsPerRow + 1,
-      );
+    blockId: id,
+    row: index ~/ seatsPerRow + 1,
+    seat: index % seatsPerRow + 1,
+  );
 }
 
 class Stand {
@@ -92,6 +92,10 @@ class Stand {
   String get meshName => 'Stand_$id';
   int get capacity => blocks.fold(0, (sum, b) => sum + b.capacity);
   int get minBasePrice => blocks.map((b) => b.basePrice).reduce(math.min);
+
+  /// False for a single-tier bowl (8 Mai 1945), where "lower tier" means
+  /// nothing.
+  bool get hasUpperTier => blocks.any((b) => b.tier > 1);
 }
 
 class Stadium {

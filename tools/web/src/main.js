@@ -1,5 +1,6 @@
-// Stadia 3D viewer: stadium.glb + picking + camera fly-to + Flutter bridge.
-// Modes (URL ?mode=): picker (default) | intro. Add &debug for stats and,
+// Stadia 3D viewer: <stadium>.glb + picking + camera fly-to + Flutter bridge.
+// Modes (URL ?mode=): picker (default) | intro; ?stadium=<id> picks the
+// model (default miloud-hadefi). Add &debug for stats and,
 // in a plain browser, the dev harness in dev.js. At the buy step the camera
 // sits in the chosen seat: the live, full-screen view from that seat.
 import './compat.js';
@@ -30,6 +31,8 @@ import { HORIZON, installSunFog, Sky } from './sky.js';
 
 const params = new URLSearchParams(window.location.search);
 const MODE = params.get('mode') === 'intro' ? 'intro' : 'picker';
+// Which stadium: its model is 3d/<id>.glb (ids are lower-case slugs).
+const STADIUM = /^[a-z0-9-]{1,40}$/.test(params.get('stadium') || '') ? params.get('stadium') : 'miloud-hadefi';
 const DEBUG = params.has('debug');
 const SPIN = params.has('spin'); // perf testing: render every frame
 
@@ -694,7 +697,7 @@ async function boot() {
   resize();
   let tModel = 0;
   try {
-    model = await loadStadium('3d/stadium.glb');
+    model = await loadStadium(`3d/${STADIUM}.glb`);
     tModel = performance.now();
   } catch (err) {
     console.error(err);

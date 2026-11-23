@@ -601,6 +601,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Skip'**
   String get skip;
+
+  /// Block depth, shown instead of the tier in a single-tier stadium.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 row} other{{count} rows}}'**
+  String rowCount(int count);
+
+  /// No description provided for @pickTeamOverline.
+  ///
+  /// In en, this message translates to:
+  /// **'Before the stadium'**
+  String get pickTeamOverline;
+
+  /// No description provided for @pickTeamTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your team'**
+  String get pickTeamTitle;
+
+  /// No description provided for @pickTeamBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll take you to its stadium and put its matches first.'**
+  String get pickTeamBody;
+
+  /// No description provided for @pickTeamFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a team to continue'**
+  String get pickTeamFirst;
+
+  /// No description provided for @goToStadium.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the stadium'**
+  String get goToStadium;
+
+  /// No description provided for @nextMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Next match'**
+  String get nextMatch;
+
+  /// No description provided for @noMatchYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No match on sale yet'**
+  String get noMatchYet;
+
+  /// No description provided for @yourTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Your team'**
+  String get yourTeam;
+
+  /// No description provided for @changeTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Change team'**
+  String get changeTeam;
+
+  /// No description provided for @stadiumsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stadiums'**
+  String get stadiumsTitle;
+
+  /// No description provided for @changeStadium.
+  ///
+  /// In en, this message translates to:
+  /// **'Change stadium'**
+  String get changeStadium;
+
+  /// No description provided for @youAreHere.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re here'**
+  String get youAreHere;
 }
 
 class _AppLocalizationsDelegate

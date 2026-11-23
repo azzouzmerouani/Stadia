@@ -19,10 +19,10 @@ class BlockAvailability {
   bool isSold(int index) => sold.contains(index);
 
   BlockAvailability withSold(int index) => BlockAvailability(
-        blockId: blockId,
-        capacity: capacity,
-        sold: {...sold, index},
-      );
+    blockId: blockId,
+    capacity: capacity,
+    sold: {...sold, index},
+  );
 }
 
 /// Free / sold seats for one match.

@@ -10,35 +10,44 @@ and its design system follows the Fantasy Premier League site: the purple
 ramp, the green/cyan/lilac accents and gradients, pill buttons, 8/12/16 px
 radii and its card shadow.
 
-The demo stadium is a ~40,000-seat Algerian ground (Stade Miloud Hadefi, Oran)
-with Ligue 1 and Algerian Cup fixtures between Algerian clubs. All data is
+There are two demo stadiums, each with its own 3D model: Stade Miloud
+Hadefi in Oran (~40,000 seats, two tiers, by the sea) and the 8 May 1945
+Stadium in Sétif (~25,000 seats, one tier, in the highlands). Both have Ligue 1
+and Algerian Cup fixtures between Algerian clubs. On first launch you pick
+your favourite club, and the app takes you to its stadium. All data is
 mocked behind repository and payment interfaces (see
 [Going to production](#going-to-production)).
 
-| Intro | Map | Stand | Block |
+| Pick your team | Intro | Map | Stand |
 |---|---|---|---|
-| ![Intro](docs/screenshots/1-intro.jpg) | ![Map](docs/screenshots/2-map.jpg) | ![Stand](docs/screenshots/3-stand.jpg) | ![Block](docs/screenshots/4-block.jpg) |
+| ![Pick your team](docs/screenshots/0-team.jpg) | ![Intro](docs/screenshots/1-intro.jpg) | ![Map](docs/screenshots/2-map.jpg) | ![Stand](docs/screenshots/3-stand.jpg) |
 
-| View from the seat | Checkout | Ticket |
-|---|---|---|
-| ![View from the seat](docs/screenshots/5-seat-view.jpg) | ![Checkout](docs/screenshots/6-checkout.jpg) | ![Ticket](docs/screenshots/7-ticket.jpg) |
+| Block | View from the seat | Checkout | Ticket |
+|---|---|---|---|
+| ![Block](docs/screenshots/4-block.jpg) | ![View from the seat](docs/screenshots/5-seat-view.jpg) | ![Checkout](docs/screenshots/6-checkout.jpg) | ![Ticket](docs/screenshots/7-ticket.jpg) |
 
 ## The flow
 
 1. **Splash**: "Loading the stadium" while the 3D assets server starts.
-2. **3D intro**: an orbit around the floodlit stadium, with Skip.
-3. **Map**: OpenStreetMap (purple-tinted tiles, attribution shown) centred on
-   the stadium, with the gates and a glass "Upcoming matches" card.
-4. **3D seat picker**: Stand → Block → Seat → Buy. Each tap flies the camera
+2. **Pick your team** (first launch only): a grid of the seven clubs. The
+   choice is saved on the device and decides the stadium: the club's home
+   ground, or the ground of its next match. A panel shows that stadium and
+   the club's next match there. Change it later from the crest on the map.
+3. **3D intro**: an orbit around the floodlit stadium, with Skip.
+4. **Map**: OpenStreetMap (purple-tinted tiles, attribution shown) centred on
+   the stadium, with the gates and a glass "Upcoming matches" card that opens
+   on your club's next match (its matches have a green outline). Tap the
+   city to switch stadium, or the crest to change your team.
+5. **3D seat picker**: Stand → Block → Seat → Buy. Each tap flies the camera
    in. Blocks and seats are coloured by availability (free / few left /
    sold). A floating glass card shows the selection, free seats and price.
-5. **In the seat**: the camera flies into the chosen seat and stays there:
+6. **In the seat**: the camera flies into the chosen seat and stays there:
    the live, full-screen view from a seated fan's eye height, drag to look
    around (no pop-up, no snapshot). A panel in the same screen shows block /
    row / seat / gate / price, the VIP upgrade (+3 000 DA, lounge, Gate E),
    "Another seat" and "Buy ticket".
-6. **Checkout**: order lines, CIB or Edahabia, Pay (mock).
-7. **"You're in"**: a notched ticket with the match, seat, gate, entry QR and
+7. **Checkout**: order lines, CIB or Edahabia, Pay (mock).
+8. **"You're in"**: a notched ticket with the match, seat, gate, entry QR and
    the gates-open time.
 
 ## Quick start
@@ -90,13 +99,19 @@ The tests cover:
 
 ## Regenerating the 3D model
 
-`assets/data/stadium.json` is the single source of truth for the layout:
-stands, tiers, blocks, rows, seats per row, gates and prices. The Blender
-script builds the whole bowl from it. Because of that, mesh names
+Each stadium has one config, `assets/data/stadiums/<id>.json`. It is the
+single source of truth for the layout: stands, tiers, blocks, rows, seats per
+row, gates and prices. An optional `model` section sets the look: roof,
+corners, seat colours, the home kit and the surroundings. The Blender script
+builds the whole bowl from the config. Because of that, mesh names
 (`Block_E_105`) always match the app's ids (`E_105`).
 
 ```bash
-blender -b --factory-startup -P tools/blender/build_stadium.py -- --config assets/data/stadium.json --out assets/3d/stadium.glb
+blender -b --factory-startup -P tools/blender/build_stadium.py -- --config assets/data/stadiums/miloud-hadefi.json --out assets/3d/miloud-hadefi.glb
+```
+
+```bash
+blender -b --factory-startup -P tools/blender/build_stadium.py -- --config assets/data/stadiums/8-mai-1945.json --out assets/3d/8-mai-1945.glb
 ```
 
 Options after `--`: `--no-draco` (bigger, easier to inspect),
@@ -105,7 +120,7 @@ Options after `--`: `--no-draco` (bigger, easier to inspect),
 `brew install --cask blender` on macOS. The script was written against
 Blender 4.5 LTS. A run takes about a minute.
 
-What it produces (Draco-compressed, about 940 KB and 135k triangles,
+For Oran it produces (Draco-compressed, about 940 KB and 135k triangles,
 budget 5 MB):
 
 - pitch and markings, athletics track;
@@ -122,6 +137,14 @@ budget 5 MB):
   parks round the stadium, a boulevard and roundabout to the south, an
   aquatic centre, a sports hall and two lit training pitches, then about
   1,150 city blocks with lit windows, street lights and cars out to 1.6 km.
+
+For Sétif (about 965 KB) it builds a single-tier bowl of 23 blocks, 36 rows
+deep, with curved terraces filling the corners. The seats are striped in
+ES Sétif's black and white, with gold VIP seats under a cantilevered canopy
+over the West Stand only. The players line up in ES Sétif's kit, with the
+referees in teal. The city around it is set in the highlands, with no sea:
+pines instead of palms, a mosque with a green dome and a lit minaret in place
+of the aquatic centre, and snow-capped ridges to the north.
 
 Kick-off is at dusk. The bake warms every face that looks towards the
 setting sun (west-south-west, 20° up) and cools the faces turned away. The
@@ -175,12 +198,14 @@ lib/
     models/       Stadium, Stand, Block, SeatRef, FootballMatch, Ticket, ...
     repositories/ StadiumRepository (interface) + LocalStadiumRepository (JSON)
     payment/      PaymentService (interface) + Mock + Chargily slot
+    favourite_team.dart  saved favourite club + where it takes you (TeamPlan)
     providers.dart Riverpod wiring (swap implementations here)
   features/
-    splash/       boot tasks (data + 3D server) before the intro
+    splash/       boot tasks (data + 3D server), then team picker or intro
+    team/         favourite-team picker
     stadium3d/    loopback asset server, WebView, scene controller, protocol,
                   intro screen
-    map/          flutter_map + OSM, gates, stadium marker
+    map/          flutter_map + OSM, gates, stadium marker, stadium switcher
     matches/      upcoming matches card
     seat_picker/  BookingMachine (pure), BookingController, picker screen,
                   seat panel (buy step, in the picker's tree)
@@ -189,8 +214,8 @@ tools/
   blender/        build_stadium.py (headless model generator)
   web/            Three.js viewer sources + esbuild bundling + dev server
 assets/
-  data/           stadium.json, matches.json
-  3d/             stadium.glb
+  data/           stadiums/<id>.json, matches.json
+  3d/             <id>.glb (one model per stadium)
   web/            index.html, stadium.js, draco/
 ```
 
@@ -267,13 +292,14 @@ The source of truth is the doc comment in
 | Refunds | Message only ("will be refunded") | Refund flow through Chargily and backend order states |
 | Ticket issuing | `issueTicket` on the device | Issued by the backend after the webhook, never by the app |
 | QR code | Plain `STADIA:1:<ticket>:<match>:<seat>:<gate>` | Server-signed payload (e.g. Ed25519 with key id and expiry); gate scanners verify offline with the public key and record scans for single entry |
+| Favourite team | Saved on the device (`shared_preferences`) | Stored on the user's profile so it follows the account; fixtures and offers for that club |
 | Wallet | In memory, lost on restart | Persisted per account, available offline (encrypted local cache) |
 | Accounts | None | Supabase Auth (phone/OTP is common in Algeria); RLS so users only read their own tickets |
 | Map tiles | `tile.openstreetmap.org`, tinted on device | The OSM tile usage policy does not allow app-scale traffic: use a tile provider with a key (MapTiler, Mapbox, …) or self-hosted dark vector tiles; keep the attribution |
 | View from the seat | Live first-person view of the procedural model | A surveyed model; optionally 360° captures per block |
 | Team crests | Real club crests bundled for the demo (club trademarks), drawn shield as fallback | Written permission from each club (or the LFP), served from the CDN by `team.logo` |
 | Stadium model | Procedural, approximate | A surveyed model of the real ground (same naming convention, same script output contract) |
-| Surroundings | Stylised night-time Bir El Djir from a fixed seed (not the real streets) | Real footprints and heights from OSM (ODbL, attributed) or a city model, cut to a few km and baked the same way |
+| Surroundings | Stylised Bir El Djir (Oran) and highland Sétif from fixed seeds (not the real streets) | Real footprints and heights from OSM (ODbL, attributed) or a city model, cut to a few km and baked the same way |
 | Localisation | Arabic (Algeria, default) and English; data names as `{en, ar}` maps | French; native-speaker review; server-side names per `Accept-Language` |
 | Ops | None | Crash reporting, analytics, remote config for prices and gates opening time |
 
@@ -284,7 +310,7 @@ create table stadiums (
   id text primary key, name text, city text,
   lat double precision, lng double precision,
   vip_upgrade_price int, gates_open_minutes_before int,
-  layout jsonb                 -- the stands/blocks section of stadium.json
+  layout jsonb                 -- the stands/blocks section of stadiums/<id>.json
 );
 
 create table matches (

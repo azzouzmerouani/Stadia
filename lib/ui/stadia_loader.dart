@@ -7,7 +7,11 @@ import 'tokens.dart';
 /// A "runner on the track": a bright segment lapping a stadium-shaped
 /// outline. Used on the splash screen and while the 3D scene loads.
 class TrackLoader extends StatefulWidget {
-  const TrackLoader({super.key, this.width = 120, this.color = StadiaColors.white});
+  const TrackLoader({
+    super.key,
+    this.width = 120,
+    this.color = StadiaColors.white,
+  });
 
   final double width;
   final Color color;
@@ -35,9 +39,7 @@ class _TrackLoaderState extends State<TrackLoader>
       width: widget.width,
       height: widget.width * 0.56,
       child: RepaintBoundary(
-        child: CustomPaint(
-          painter: _TrackPainter(_c, widget.color),
-        ),
+        child: CustomPaint(painter: _TrackPainter(_c, widget.color)),
       ),
     );
   }
@@ -100,7 +102,11 @@ class _TrackPainter extends CustomPainter {
 
 /// Compact circular spinner for buttons.
 class StadiaSpinner extends StatefulWidget {
-  const StadiaSpinner({super.key, this.size = 20, this.color = StadiaColors.white});
+  const StadiaSpinner({
+    super.key,
+    this.size = 20,
+    this.color = StadiaColors.white,
+  });
 
   final double size;
   final Color color;
@@ -128,9 +134,8 @@ class _StadiaSpinnerState extends State<StadiaSpinner>
       dimension: widget.size,
       child: AnimatedBuilder(
         animation: _c,
-        builder: (context, _) => CustomPaint(
-          painter: _ArcPainter(_c.value, widget.color),
-        ),
+        builder: (context, _) =>
+            CustomPaint(painter: _ArcPainter(_c.value, widget.color)),
       ),
     );
   }

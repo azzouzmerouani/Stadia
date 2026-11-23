@@ -15,7 +15,12 @@ extension BookingWords on AppLocalizations {
 
   String match(FootballMatch m) => matchTitle(m.home.name, m.away.name);
 
-  String tier(Block b) => b.tier == 1 ? tierLower : tierUpper;
+  /// "Lower tier" / "Upper tier", or "36 rows" in a single-tier bowl.
+  String tier(Stand s, Block b) => !s.hasUpperTier
+      ? rowCount(b.rows)
+      : b.tier == 1
+      ? tierLower
+      : tierUpper;
 
   /// "Row 12 · Seat 7" / "Block 104" / "East Stand".
   String summaryTitle(SelectionSummary s) => switch (s.level) {
@@ -27,7 +32,7 @@ extension BookingWords on AppLocalizations {
   /// "East Stand · Block 104" / "East Stand · Lower tier" / "Tribune Est".
   String summarySubtitle(SelectionSummary s) => switch (s.level) {
     SelectionLevel.seat => '${s.stand.name} · ${blockNumber(s.block!.number)}',
-    SelectionLevel.block => '${s.stand.name} · ${tier(s.block!)}',
+    SelectionLevel.block => '${s.stand.name} · ${tier(s.stand, s.block!)}',
     SelectionLevel.stand => s.stand.nickname,
   };
 

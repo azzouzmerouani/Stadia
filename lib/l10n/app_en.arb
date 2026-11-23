@@ -132,5 +132,23 @@
   "entryQr": "Entry QR code",
 
   "matchdayAt": "Matchday at",
-  "skip": "Skip"
+  "skip": "Skip",
+
+  "rowCount": "{count, plural, =1{1 row} other{{count} rows}}",
+  "@rowCount": {
+    "description": "Block depth, shown instead of the tier in a single-tier stadium.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pickTeamOverline": "Before the stadium",
+  "pickTeamTitle": "Pick your team",
+  "pickTeamBody": "We'll take you to its stadium and put its matches first.",
+  "pickTeamFirst": "Pick a team to continue",
+  "goToStadium": "Go to the stadium",
+  "nextMatch": "Next match",
+  "noMatchYet": "No match on sale yet",
+  "yourTeam": "Your team",
+  "changeTeam": "Change team",
+  "stadiumsTitle": "Stadiums",
+  "changeStadium": "Change stadium",
+  "youAreHere": "You're here"
 }

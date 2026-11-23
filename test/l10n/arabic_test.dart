@@ -26,7 +26,9 @@ void main() {
     expect(stadium.city, 'وهران');
     expect(stadium.standById('N')!.name, 'المدرج الشمالي');
 
-    final match = (await repo.fetchUpcomingMatches()).first;
+    final match = (await repo.fetchUpcomingMatches()).firstWhere(
+      (m) => m.stadiumId == stadium.id,
+    );
     expect(match.home.name, 'مولودية وهران');
     expect(match.home.shortName, 'MCO'); // codes stay Latin, like FPL's
 
@@ -84,7 +86,7 @@ void main() {
               width: 360,
               height: MatchCard.height,
               child: MatchCard(
-                match: matches!.first,
+                match: matches!.firstWhere((m) => m.stadiumId == stadium!.id),
                 stadium: stadium!,
                 onChooseSeats: () {},
               ),

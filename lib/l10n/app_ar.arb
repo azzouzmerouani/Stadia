@@ -91,5 +91,19 @@
   "entryQr": "رمز QR للدخول",
 
   "matchdayAt": "يوم المباراة في",
-  "skip": "تخطي"
+  "skip": "تخطي",
+
+  "rowCount": "{count, plural, =0{لا صفوف} =1{صف واحد} =2{صفان} few{{count} صفوف} many{{count} صفًا} other{{count} صف}}",
+  "pickTeamOverline": "قبل الذهاب إلى الملعب",
+  "pickTeamTitle": "اختر فريقك المفضل",
+  "pickTeamBody": "سنأخذك إلى ملعبه ونضع مبارياته أولًا.",
+  "pickTeamFirst": "اختر فريقًا للمتابعة",
+  "goToStadium": "إلى الملعب",
+  "nextMatch": "المباراة القادمة",
+  "noMatchYet": "لا تذاكر معروضة بعد",
+  "yourTeam": "فريقك",
+  "changeTeam": "تغيير الفريق",
+  "stadiumsTitle": "الملاعب",
+  "changeStadium": "تغيير الملعب",
+  "youAreHere": "أنت هنا"
 }

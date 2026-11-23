@@ -225,7 +225,12 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
             fit: StackFit.expand,
             children: [
               Positioned.fill(
-                child: viewBuilder(context, _scene, SceneMode.picker),
+                child: viewBuilder(
+                  context,
+                  _scene,
+                  SceneMode.picker,
+                  value.stadium.id,
+                ),
               ),
               IgnorePointer(
                 ignoring: _sceneReady,

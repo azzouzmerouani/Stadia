@@ -2,6 +2,7 @@
 /// without pulling in every screen.
 abstract final class Routes {
   static const splash = '/';
+  static const team = '/team';
   static const intro = '/intro';
   static const map = '/map';
   static String seats(String matchId) => '/match/$matchId/seats';

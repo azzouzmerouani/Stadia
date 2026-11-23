@@ -1,0 +1,152 @@
+{
+  "id": "8-mai-1945",
+  "name": {
+    "en": "8 May 1945 Stadium",
+    "ar": "ملعب 8 ماي 1945"
+  },
+  "city": {
+    "en": "Sétif",
+    "ar": "سطيف"
+  },
+  "location": {
+    "lat": 36.18694,
+    "lng": 5.39306
+  },
+  "gatesOpenMinutesBefore": 120,
+  "vipUpgradePrice": 2500,
+  "layout": {
+    "seatsPerRow": 30,
+    "seatWidth": 0.5,
+    "rowDepth": 0.8,
+    "blockWidth": 16.0,
+    "tiers": [
+      {
+        "tier": 1,
+        "rows": 36,
+        "rise": 0.45
+      }
+    ]
+  },
+  "stands": [
+    {
+      "id": "N",
+      "name": {
+        "en": "North Stand",
+        "ar": "المدرج الشمالي"
+      },
+      "nickname": {
+        "en": "Virage Nord",
+        "ar": "الفيراج الشمالي"
+      },
+      "blocksPerTier": 5,
+      "gate": "A",
+      "prices": {
+        "1": 400
+      }
+    },
+    {
+      "id": "E",
+      "name": {
+        "en": "East Stand",
+        "ar": "المدرج الشرقي"
+      },
+      "nickname": {
+        "en": "Tribune Est",
+        "ar": "المنصة الشرقية"
+      },
+      "blocksPerTier": 7,
+      "gate": "B",
+      "prices": {
+        "1": 800
+      }
+    },
+    {
+      "id": "S",
+      "name": {
+        "en": "South Stand",
+        "ar": "المدرج الجنوبي"
+      },
+      "nickname": {
+        "en": "Virage Sud",
+        "ar": "الفيراج الجنوبي"
+      },
+      "blocksPerTier": 5,
+      "gate": "C",
+      "prices": {
+        "1": 400
+      }
+    },
+    {
+      "id": "W",
+      "name": {
+        "en": "West Stand",
+        "ar": "المدرج الغربي"
+      },
+      "nickname": {
+        "en": "Tribune Officielle",
+        "ar": "المنصة الشرفية"
+      },
+      "blocksPerTier": 6,
+      "gate": "D",
+      "vip": true,
+      "prices": {
+        "1": 1200
+      }
+    }
+  ],
+  "gates": [
+    {
+      "id": "A",
+      "name": {
+        "en": "Gate A",
+        "ar": "الباب A"
+      },
+      "north": 150,
+      "east": 0
+    },
+    {
+      "id": "B",
+      "name": {
+        "en": "Gate B",
+        "ar": "الباب B"
+      },
+      "north": 0,
+      "east": 112
+    },
+    {
+      "id": "C",
+      "name": {
+        "en": "Gate C",
+        "ar": "الباب C"
+      },
+      "north": -150,
+      "east": 0
+    },
+    {
+      "id": "D",
+      "name": {
+        "en": "Gate D",
+        "ar": "الباب D"
+      },
+      "north": 50,
+      "east": -112
+    },
+    {
+      "id": "E",
+      "name": {
+        "en": "Gate E · VIP",
+        "ar": "الباب E · VIP"
+      },
+      "north": -50,
+      "east": -112
+    }
+  ],
+  "model": {
+    "roof": "main",
+    "corners": "terraces",
+    "seats": "stripes",
+    "homeKit": "ess",
+    "setting": "highlands",
+    "seed": 1945
+  }
+}

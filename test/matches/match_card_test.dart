@@ -32,7 +32,7 @@ void main() {
               width: 360,
               height: MatchCard.height,
               child: MatchCard(
-                match: matches!.first,
+                match: matches!.firstWhere((m) => m.stadiumId == stadium!.id),
                 stadium: stadium!,
                 onChooseSeats: () => tapped = true,
               ),

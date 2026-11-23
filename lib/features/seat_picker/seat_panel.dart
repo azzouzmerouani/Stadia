@@ -238,7 +238,7 @@ class _SeatStage extends StatelessWidget {
                     style: StadiaText.title,
                   ),
                   Text(
-                    '${stand.name} · ${l10n.tier(block)}',
+                    '${stand.name} · ${l10n.tier(stand, block)}',
                     style: StadiaText.caption,
                   ),
                 ],

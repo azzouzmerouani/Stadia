@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/favourite_team.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
 import '../../ui/format.dart';
@@ -48,7 +49,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final f = StadiaFormat.of(context);
-    final stadium = ref.watch(stadiumProvider).value;
+    // Name the stadium only once we know which one (a returning fan).
+    final stadium = ref.watch(favouriteTeamProvider) == null
+        ? null
+        : ref.watch(stadiumProvider).value;
     final subtitle =
         _error ??
         (stadium == null

@@ -20,10 +20,14 @@ class StadiumWebView extends ConsumerStatefulWidget {
     super.key,
     required this.controller,
     required this.mode,
+    required this.stadiumId,
   });
 
   final StadiumSceneController controller;
   final SceneMode mode;
+
+  /// Which model the page loads (`/3d/<stadiumId>.glb`).
+  final String stadiumId;
 
   @override
   ConsumerState<StadiumWebView> createState() => _StadiumWebViewState();
@@ -32,6 +36,7 @@ class StadiumWebView extends ConsumerStatefulWidget {
 class _StadiumWebViewState extends ConsumerState<StadiumWebView> {
   WebViewController? _web;
   Uri? _origin;
+  String? _stadiumId;
 
   @override
   void dispose() {
@@ -41,8 +46,14 @@ class _StadiumWebViewState extends ConsumerState<StadiumWebView> {
 
   WebViewController _create(LocalAssetServer server) {
     final origin = server.origin.toString();
+    final page = server.page(
+      widget.mode,
+      stadium: widget.stadiumId,
+      debug: _debugStats,
+    );
     _origin = server.origin;
-    _log('loading ${server.page(widget.mode, debug: _debugStats)}');
+    _stadiumId = widget.stadiumId;
+    _log('loading $page');
     return WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(StadiaColors.page)
@@ -68,7 +79,7 @@ class _StadiumWebViewState extends ConsumerState<StadiumWebView> {
           },
         ),
       )
-      ..loadRequest(server.page(widget.mode, debug: _debugStats));
+      ..loadRequest(page);
   }
 
   /// `flutter run --dart-define=STADIA_3D_DEBUG=true` shows the scene's
@@ -128,7 +139,11 @@ class _StadiumWebViewState extends ConsumerState<StadiumWebView> {
     if (value == null) {
       return const ColoredBox(color: StadiaColors.page);
     }
-    if (_web == null || _origin != value.origin) _web = _create(value);
+    if (_web == null ||
+        _origin != value.origin ||
+        _stadiumId != widget.stadiumId) {
+      _web = _create(value);
+    }
     return WebViewWidget(
       controller: _web!,
       // The scene owns every touch: orbit, pinch, tap.

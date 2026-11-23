@@ -124,14 +124,23 @@ void main() {
       },
     );
 
-    test('page URL carries the scene mode', () {
-      final uri = server.page(SceneMode.intro, debug: false);
+    test('page URL carries the scene mode and the stadium', () {
+      final uri = server.page(
+        SceneMode.intro,
+        stadium: 'miloud-hadefi',
+        debug: false,
+      );
       expect(uri.path, '/index.html');
-      expect(uri.queryParameters, {'mode': 'intro'});
-      expect(server.page(SceneMode.picker, debug: true).queryParameters, {
-        'mode': 'picker',
-        'debug': '1',
+      expect(uri.queryParameters, {
+        'mode': 'intro',
+        'stadium': 'miloud-hadefi',
       });
+      expect(
+        server
+            .page(SceneMode.picker, stadium: '8-mai-1945', debug: true)
+            .queryParameters,
+        {'mode': 'picker', 'stadium': '8-mai-1945', 'debug': '1'},
+      );
     });
   });
 }

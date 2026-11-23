@@ -9,12 +9,16 @@ class Team {
     required this.primaryColor,
     required this.secondaryColor,
     this.logo,
+    this.homeStadiumId,
   });
 
   final String id;
   final String name;
   final String shortName;
   final String city;
+
+  /// The club's home ground when the app sells tickets for it.
+  final String? homeStadiumId;
 
   /// ARGB colours; converted to `Color` in the UI layer.
   final int primaryColor;
@@ -53,6 +57,8 @@ class FootballMatch {
 
   /// 0..1 – how full the mock repository makes the stadium.
   final double demand;
+
+  bool involves(String teamId) => home.id == teamId || away.id == teamId;
 
   /// Ticket price for a block, rounded to the nearest 50 DA.
   int priceFor(Block block) => _round50(block.basePrice * priceMultiplier);

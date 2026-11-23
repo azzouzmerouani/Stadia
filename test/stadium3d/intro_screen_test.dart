@@ -27,7 +27,12 @@ void main() {
           stadiumRepositoryProvider.overrideWithValue(
             LocalStadiumRepository(latency: Duration.zero),
           ),
-          stadiumViewBuilderProvider.overrideWithValue((context, c, mode) {
+          stadiumViewBuilderProvider.overrideWithValue((
+            context,
+            c,
+            mode,
+            stadiumId,
+          ) {
             scene = c;
             return const SizedBox.expand(key: Key('fake-3d'));
           }),

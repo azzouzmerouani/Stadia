@@ -36,10 +36,16 @@ class LocalAssetServer {
 
   Uri get origin => Uri(scheme: 'http', host: '127.0.0.1', port: port);
 
-  Uri page(SceneMode mode, {required bool debug}) => origin.replace(
-    path: '/index.html',
-    queryParameters: {'mode': mode.name, if (debug) 'debug': '1'},
-  );
+  /// The viewer page; it loads `/3d/<stadium>.glb`.
+  Uri page(SceneMode mode, {required String stadium, required bool debug}) =>
+      origin.replace(
+        path: '/index.html',
+        queryParameters: {
+          'mode': mode.name,
+          'stadium': stadium,
+          if (debug) 'debug': '1',
+        },
+      );
 
   /// Asset key for a request path, or null when it is outside the viewer.
   @visibleForTesting

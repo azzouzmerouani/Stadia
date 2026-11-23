@@ -18,6 +18,7 @@ class MatchCard extends StatelessWidget {
     required this.match,
     required this.stadium,
     required this.onChooseSeats,
+    this.featured = false,
   });
 
   static const height = 236.0;
@@ -25,6 +26,9 @@ class MatchCard extends StatelessWidget {
   final FootballMatch match;
   final Stadium stadium;
   final VoidCallback onChooseSeats;
+
+  /// The user's favourite club plays: a green rim.
+  final bool featured;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +40,12 @@ class MatchCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: StadiaColors.purple100,
           borderRadius: BorderRadius.circular(StadiaRadii.lg),
-          border: Border.all(color: StadiaColors.glassBorder),
+          border: Border.all(
+            color: featured
+                ? StadiaColors.green.withValues(alpha: 0.75)
+                : StadiaColors.glassBorder,
+            width: featured ? 1.5 : 1,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),

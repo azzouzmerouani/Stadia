@@ -1,14 +1,31 @@
 {
   "teams": [
-    { "id": "MCO", "name": { "en": "MC Oran", "ar": "مولودية وهران" }, "short": "MCO", "city": { "en": "Oran", "ar": "وهران" }, "primary": "#D71920", "secondary": "#FFFFFF", "logo": "assets/clubs/MCO.png" },
+    { "id": "MCO", "name": { "en": "MC Oran", "ar": "مولودية وهران" }, "short": "MCO", "city": { "en": "Oran", "ar": "وهران" }, "stadium": "miloud-hadefi", "primary": "#D71920", "secondary": "#FFFFFF", "logo": "assets/clubs/MCO.png" },
     { "id": "MCA", "name": { "en": "MC Alger", "ar": "مولودية الجزائر" }, "short": "MCA", "city": { "en": "Algiers", "ar": "الجزائر العاصمة" }, "primary": "#C8102E", "secondary": "#00843D", "logo": "assets/clubs/MCA.png" },
     { "id": "JSK", "name": { "en": "JS Kabylie", "ar": "شبيبة القبائل" }, "short": "JSK", "city": { "en": "Tizi Ouzou", "ar": "تيزي وزو" }, "primary": "#FFD100", "secondary": "#007A33", "logo": "assets/clubs/JSK.png" },
-    { "id": "ESS", "name": { "en": "ES Sétif", "ar": "وفاق سطيف" }, "short": "ESS", "city": { "en": "Sétif", "ar": "سطيف" }, "primary": "#111111", "secondary": "#FFFFFF", "logo": "assets/clubs/ESS.png" },
+    { "id": "ESS", "name": { "en": "ES Sétif", "ar": "وفاق سطيف" }, "short": "ESS", "city": { "en": "Sétif", "ar": "سطيف" }, "stadium": "8-mai-1945", "primary": "#111111", "secondary": "#FFFFFF", "logo": "assets/clubs/ESS.png" },
     { "id": "USMA", "name": { "en": "USM Alger", "ar": "اتحاد العاصمة" }, "short": "USMA", "city": { "en": "Algiers", "ar": "الجزائر العاصمة" }, "primary": "#D50032", "secondary": "#111111", "logo": "assets/clubs/USMA.png" },
     { "id": "CRB", "name": { "en": "CR Belouizdad", "ar": "شباب بلوزداد" }, "short": "CRB", "city": { "en": "Algiers", "ar": "الجزائر العاصمة" }, "primary": "#E30613", "secondary": "#FFFFFF", "logo": "assets/clubs/CRB.png" },
     { "id": "CSC", "name": { "en": "CS Constantine", "ar": "شباب قسنطينة" }, "short": "CSC", "city": { "en": "Constantine", "ar": "قسنطينة" }, "primary": "#00843D", "secondary": "#111111", "logo": "assets/clubs/CSC.png" }
   ],
   "matches": [
+    {
+      "id": "ess-crb-2026-11-28",
+      "stadium": "8-mai-1945",
+      "home": "ESS",
+      "away": "CRB",
+      "kickoff": "2026-11-28T15:00:00",
+      "competition": {
+        "en": "Ligue 1",
+        "ar": "الرابطة المحترفة الأولى"
+      },
+      "round": {
+        "en": "Matchday 12",
+        "ar": "الجولة 12"
+      },
+      "priceMultiplier": 1.25,
+      "demand": 0.78
+    },
     {
       "id": "mco-mca-2026-11-28",
       "stadium": "miloud-hadefi",
@@ -25,6 +42,23 @@
       },
       "priceMultiplier": 1.5,
       "demand": 0.86
+    },
+    {
+      "id": "ess-usma-2026-12-05",
+      "stadium": "8-mai-1945",
+      "home": "ESS",
+      "away": "USMA",
+      "kickoff": "2026-12-05T15:00:00",
+      "competition": {
+        "en": "Ligue 1",
+        "ar": "الرابطة المحترفة الأولى"
+      },
+      "round": {
+        "en": "Matchday 13",
+        "ar": "الجولة 13"
+      },
+      "priceMultiplier": 1.25,
+      "demand": 0.7
     },
     {
       "id": "mco-jsk-2026-12-05",
@@ -61,6 +95,23 @@
       "demand": 0.52
     },
     {
+      "id": "ess-csc-2026-12-19",
+      "stadium": "8-mai-1945",
+      "home": "ESS",
+      "away": "CSC",
+      "kickoff": "2026-12-19T14:30:00",
+      "competition": {
+        "en": "Ligue 1",
+        "ar": "الرابطة المحترفة الأولى"
+      },
+      "round": {
+        "en": "Matchday 15",
+        "ar": "الجولة 15"
+      },
+      "priceMultiplier": 1.5,
+      "demand": 0.84
+    },
+    {
       "id": "mco-usma-2026-12-19",
       "stadium": "miloud-hadefi",
       "home": "MCO",
@@ -78,6 +129,23 @@
       "demand": 0.64
     },
     {
+      "id": "ess-mca-2026-12-26",
+      "stadium": "8-mai-1945",
+      "home": "ESS",
+      "away": "MCA",
+      "kickoff": "2026-12-26T14:00:00",
+      "competition": {
+        "en": "Algerian Cup",
+        "ar": "كأس الجزائر"
+      },
+      "round": {
+        "en": "Round of 16",
+        "ar": "ثمن النهائي"
+      },
+      "priceMultiplier": 1.25,
+      "demand": 0.88
+    },
+    {
       "id": "mco-csc-2026-12-26",
       "stadium": "miloud-hadefi",
       "home": "MCO",
@@ -93,6 +161,23 @@
       },
       "priceMultiplier": 1.0,
       "demand": 0.41
+    },
+    {
+      "id": "ess-jsk-2027-01-02",
+      "stadium": "8-mai-1945",
+      "home": "ESS",
+      "away": "JSK",
+      "kickoff": "2027-01-02T15:00:00",
+      "competition": {
+        "en": "Ligue 1",
+        "ar": "الرابطة المحترفة الأولى"
+      },
+      "round": {
+        "en": "Matchday 16",
+        "ar": "الجولة 16"
+      },
+      "priceMultiplier": 1.25,
+      "demand": 0.66
     }
   ]
 }

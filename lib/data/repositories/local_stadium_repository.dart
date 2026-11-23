@@ -19,14 +19,22 @@ import 'stadium_repository.dart';
 class LocalStadiumRepository implements StadiumRepository {
   LocalStadiumRepository({
     AssetBundle? bundle,
-    this.stadiumAsset = 'assets/data/stadium.json',
+    this.stadiumIds = defaultStadiumIds,
+    this.stadiumsDir = 'assets/data/stadiums',
     this.matchesAsset = 'assets/data/matches.json',
     this.latency = const Duration(milliseconds: 250),
     this.languageCode = 'en',
   }) : _bundle = bundle ?? rootBundle;
 
+  /// Miloud Hadefi (Oran) first: the default stadium.
+  static const defaultStadiumIds = ['miloud-hadefi', '8-mai-1945'];
+
   final AssetBundle _bundle;
-  final String stadiumAsset;
+
+  /// Each stadium is `<stadiumsDir>/<id>.json`; its 3D model is
+  /// `assets/3d/<id>.glb`.
+  final List<String> stadiumIds;
+  final String stadiumsDir;
   final String matchesAsset;
 
   /// Language of names, cities, competitions… (`ar` in the app).
@@ -35,18 +43,33 @@ class LocalStadiumRepository implements StadiumRepository {
   /// Simulated network latency so loading states are exercised.
   final Duration latency;
 
-  Stadium? _stadium;
+  final Map<String, Stadium> _stadiums = {};
+  List<Team>? _teams;
   List<FootballMatch>? _matches;
   final Map<String, MatchAvailability> _availability = {};
 
   @override
-  Future<Stadium> fetchStadium() async {
-    if (_stadium != null) return _stadium!;
-    final raw = jsonDecode(await _bundle.loadString(stadiumAsset));
-    return _stadium = parseStadium(
+  Future<List<Stadium>> fetchStadiums() async => [
+    for (final id in stadiumIds) await fetchStadium(id),
+  ];
+
+  @override
+  Future<Stadium> fetchStadium([String? id]) async {
+    final key = id ?? stadiumIds.first;
+    final cached = _stadiums[key];
+    if (cached != null) return cached;
+    if (!stadiumIds.contains(key)) throw ArgumentError.value(id, 'id');
+    final raw = jsonDecode(await _bundle.loadString('$stadiumsDir/$key.json'));
+    return _stadiums[key] = parseStadium(
       raw as Map<String, dynamic>,
       language: languageCode,
     );
+  }
+
+  @override
+  Future<List<Team>> fetchTeams() async {
+    await _loadMatches();
+    return List.unmodifiable(_teams!);
   }
 
   @override
@@ -69,8 +92,8 @@ class LocalStadiumRepository implements StadiumRepository {
     await Future<void>.delayed(latency);
     final cached = _availability[matchId];
     if (cached != null) return cached;
-    final stadium = await fetchStadium();
     final match = await fetchMatch(matchId);
+    final stadium = await fetchStadium(match.stadiumId);
     return _availability[matchId] = generateAvailability(stadium, match);
   }
 
@@ -81,7 +104,7 @@ class LocalStadiumRepository implements StadiumRepository {
     required bool vip,
     required PaymentReceipt receipt,
   }) async {
-    final stadium = await fetchStadium();
+    final stadium = await fetchStadium(match.stadiumId);
     final availability = await fetchAvailability(match.id);
     final block = stadium.blockById(seat.blockId);
     if (block == null || !availability.isSeatFree(block, seat)) {
@@ -116,11 +139,11 @@ class LocalStadiumRepository implements StadiumRepository {
 
   Future<List<FootballMatch>> _loadMatches() async {
     if (_matches != null) return _matches!;
-    final raw = jsonDecode(await _bundle.loadString(matchesAsset));
-    return _matches = parseMatches(
-      raw as Map<String, dynamic>,
-      language: languageCode,
-    );
+    final raw =
+        jsonDecode(await _bundle.loadString(matchesAsset))
+            as Map<String, dynamic>;
+    _teams = parseTeams(raw, language: languageCode);
+    return _matches = parseMatches(raw, language: languageCode);
   }
 
   // ---------------------------------------------------------------- parsing
@@ -209,14 +232,14 @@ class LocalStadiumRepository implements StadiumRepository {
     );
   }
 
-  static List<FootballMatch> parseMatches(
+  static List<Team> parseTeams(
     Map<String, dynamic> json, {
     String language = 'en',
   }) {
     String t(Object? v) => text(v, language);
-    final teams = {
+    return [
       for (final team in json['teams'] as List)
-        team['id'] as String: Team(
+        Team(
           id: team['id'] as String,
           name: t(team['name']),
           shortName: team['short'] as String,
@@ -224,7 +247,18 @@ class LocalStadiumRepository implements StadiumRepository {
           primaryColor: _parseHex(team['primary'] as String),
           secondaryColor: _parseHex(team['secondary'] as String),
           logo: team['logo'] as String?,
+          homeStadiumId: team['stadium'] as String?,
         ),
+    ];
+  }
+
+  static List<FootballMatch> parseMatches(
+    Map<String, dynamic> json, {
+    String language = 'en',
+  }) {
+    String t(Object? v) => text(v, language);
+    final teams = {
+      for (final team in parseTeams(json, language: language)) team.id: team,
     };
     final matches = [
       for (final m in json['matches'] as List)

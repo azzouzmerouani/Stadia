@@ -82,6 +82,7 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
   @override
   Widget build(BuildContext context) {
     final viewBuilder = ref.watch(stadiumViewBuilderProvider);
+    final stadiumId = ref.watch(currentStadiumIdProvider);
     final stadium = ref.watch(stadiumProvider).value;
     final l10n = context.l10n;
 
@@ -90,7 +91,9 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Positioned.fill(child: viewBuilder(context, _scene, SceneMode.intro)),
+          Positioned.fill(
+            child: viewBuilder(context, _scene, SceneMode.intro, stadiumId),
+          ),
           Positioned(
             top: 0,
             left: 0,

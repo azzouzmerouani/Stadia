@@ -22,19 +22,20 @@ class BookingContext {
       BookingMachine(stadium: stadium, availability: availability);
 }
 
-final bookingContextProvider =
-    FutureProvider.autoDispose.family<BookingContext, String>((ref, matchId) async {
-  final results = await Future.wait([
-    ref.watch(stadiumProvider.future),
-    ref.watch(matchProvider(matchId).future),
-    ref.watch(availabilityProvider(matchId).future),
-  ]);
-  return BookingContext(
-    stadium: results[0] as Stadium,
-    match: results[1] as FootballMatch,
-    availability: results[2] as MatchAvailability,
-  );
-});
+final bookingContextProvider = FutureProvider.autoDispose
+    .family<BookingContext, String>((ref, matchId) async {
+      final match = await ref.watch(matchProvider(matchId).future);
+      final results = await Future.wait([
+        // The stadium the match is played at, whichever one the map shows.
+        ref.watch(stadiumByIdProvider(match.stadiumId).future),
+        ref.watch(availabilityProvider(matchId).future),
+      ]);
+      return BookingContext(
+        stadium: results[0] as Stadium,
+        match: match,
+        availability: results[1] as MatchAvailability,
+      );
+    });
 
 /// Holds the booking selection for one match and feeds events through the
 /// pure [BookingMachine].

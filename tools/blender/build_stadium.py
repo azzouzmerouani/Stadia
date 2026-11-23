@@ -1,12 +1,15 @@
 """Procedural low-poly stadium for Stadia.
 
-Run headless (from the repo root):
+Run headless (from the repo root), once per stadium:
 
     blender -b --factory-startup -P tools/blender/build_stadium.py -- \
-        --config assets/data/stadium.json --out assets/3d/stadium.glb
+        --config assets/data/stadiums/miloud-hadefi.json --out assets/3d/miloud-hadefi.glb
+    blender -b --factory-startup -P tools/blender/build_stadium.py -- \
+        --config assets/data/stadiums/8-mai-1945.json --out assets/3d/8-mai-1945.glb
 
 Options after `--`:
-    --config PATH   stadium layout (stands, blocks, tiers, rows, seats)
+    --config PATH   stadium layout (stands, blocks, tiers, rows, seats) and
+                    its optional "model" section (see STYLE)
     --out PATH      output .glb (Draco compressed unless --no-draco)
     --no-draco      skip Draco compression (bigger, easier to debug)
     --blend PATH    also save the generated .blend for inspection
@@ -38,6 +41,14 @@ the north, hills, roads and street lights, car parks, palms, the aquatic
 centre and sports hall, training pitches and a low-rise city with lit
 windows. It is baked darker than the floodlit bowl; emissive materials
 (windows, lamps) skip the bake. `--no-env` builds the bowl alone.
+
+The config's "model" section changes the look (see STYLE). Without it you
+get Miloud Hadefi, Oran: two tiers under a ring roof, concourse buildings
+in the corners, by the sea. 8 Mai 1945, Sétif, is an open single-tier bowl
+with curved corner terraces (Corner_Terraces), black-and-white seats, a
+canopy over the main stand only, the home side in ES Sétif black and
+white, and the high plains round it: snow-capped mountains to the north,
+conifers and a mosque instead of the sea, palms and the aquatic centre.
 """
 
 import argparse
@@ -60,8 +71,8 @@ def parse_args():
     here = os.path.dirname(os.path.abspath(__file__))
     root = os.path.abspath(os.path.join(here, "..", ".."))
     p = argparse.ArgumentParser(description="Build the Stadia stadium GLB")
-    p.add_argument("--config", default=os.path.join(root, "assets/data/stadium.json"))
-    p.add_argument("--out", default=os.path.join(root, "assets/3d/stadium.glb"))
+    p.add_argument("--config", default=os.path.join(root, "assets/data/stadiums/miloud-hadefi.json"))
+    p.add_argument("--out", default=os.path.join(root, "assets/3d/miloud-hadefi.glb"))
     p.add_argument("--no-draco", action="store_true")
     p.add_argument("--blend", default=None)
     p.add_argument("--no-env", action="store_true")
@@ -95,6 +106,17 @@ STAND_DIRS = {
     "W": ((-STAND_FRONT_EW, 0.0), (-1.0, 0.0)),
 }
 
+# The stadium's look, from the config's optional "model" section. The
+# defaults are Miloud Hadefi (Oran); 8 Mai 1945 (Sétif) overrides them all.
+STYLE = {
+    "roof": "ring",  # ring | main: a canopy over the west (main) stand only
+    "corners": "concourse",  # concourse buildings | terraces: curved, seatless steps
+    "seats": "tiers",  # tiers: green lower, white upper | stripes: black and white by block
+    "homeKit": "algeria",  # algeria: white and green | ess: ES Sétif black and white
+    "setting": "coast",  # coast: Bir El Djir by the sea | highlands: Sétif's high plains
+    "seed": 2026,  # surroundings layout
+}
+
 # sRGB hex; converted to linear for Blender/glTF. Night palette, tuned to
 # the app's FPL purples.
 PALETTE = {
@@ -116,6 +138,8 @@ PALETTE = {
     "SeatLower": "#1B7A4A",  # Algerian green
     "SeatUpper": "#E4EAF2",  # white
     "SeatVip": "#C8283C",  # red
+    "SeatBlack": "#2A2632",  # ES Sétif stripes (with SeatUpper white)
+    "SeatGold": "#C9A24E",  # Sétif VIP
     "Roof": "#EEF2F8",
     "RoofUnder": "#B4AECB",
     "Steel": "#9A96B3",
@@ -136,6 +160,7 @@ PALETTE = {
     "KitYellow": "#F2C230",
     "KitOrange": "#FF7A1A",
     "KitBlack": "#18151E",
+    "KitTeal": "#1AA39A",  # referees when the home side wears black
     "Net": "#E6E9F0",
     "LedPurple": "#5A1478",
     "LedInk": "#2A0033",
@@ -173,7 +198,12 @@ PALETTE = {
     "CarRed": "#B02A3E",
     "CarBlue": "#2F4F8F",
     "CarGlass": "#141320",
+    "Snow": "#ECEEF8",  # highlands: mountain caps
+    "Pine": "#1E4733",
+    "MosqueWall": "#D8D0C4",
+    "Dome": "#3F8E6C",
     # emissive: full colour, no baked shading
+    "MinaretLight": "#8CFFC4",
     "Window": "#FFD48A",
     "WindowCool": "#CFE6FF",
     "GlassLit": "#7FE7FF",
@@ -186,7 +216,7 @@ PALETTE = {
 
 EMISSIVE = {"Lamp", "Window", "WindowCool", "GlassLit", "StreetLight", "PitchLight",
             "Headlight", "Taillight", "Beacon", "LedPurple", "LedInk", "LedGreen", "LedCyan",
-            "LedLilac", "LedPink", "LedWhite"}
+            "LedLilac", "LedPink", "LedWhite", "MinaretLight"}
 
 # The surroundings are dimmer than the floodlit bowl (multiplies the bake).
 ENV_DIM = 0.6
@@ -595,9 +625,14 @@ def stand_matrix(front, out):
 
 
 def seat_colour(stand_id, tier, index, count):
+    vip = stand_id == "W" and abs(index - (count - 1) / 2) < 1.1
+    if STYLE["seats"] == "stripes":
+        if vip:
+            return "SeatGold"
+        return "SeatBlack" if (index + "NESW".index(stand_id)) % 2 == 0 else "SeatUpper"
     if tier > 1:
         return "SeatUpper"
-    if stand_id == "W" and abs(index - (count - 1) / 2) < 1.1:
+    if vip:
         return "SeatVip"
     return "SeatLower"
 
@@ -767,6 +802,85 @@ def build_floodlights(back):
                     @ Matrix.Rotation(math.radians(28), 4, "X"))
             f.oriented_box(head, 6.5, 0.5, 3.6, "Steel", front_mat="Lamp")
     f.build(ao=False)
+
+
+def build_corner_terraces(cfg, back, back_top):
+    """Open-bowl corners: curved, seatless concrete steps from the end of
+    one stand round to the next, at the same rake as the stands."""
+    layout = cfg["layout"]
+    row_d = layout["rowDepth"]
+    tier = stand_profile(cfg)[0][0]
+    ends = {s["id"]: s["blocksPerTier"] * layout["blockWidth"] / 2 + 0.6 for s in cfg["stands"]}
+    segments = 12
+    m = MeshBuilder("Corner_Terraces")
+    for sx, side in ((1, "E"), (-1, "W")):
+        for sy, end in ((1, "N"), (-1, "S")):
+            cx, cy = ends[end], ends[side]  # where the end stand and the side stand stop
+
+            def arc(d, cx=cx, cy=cy, sx=sx, sy=sy):
+                rx, ry = STAND_FRONT_EW + d - cx, STAND_FRONT_NS + d - cy
+                return [(sx * (cx + rx * math.cos(a)), sy * (cy + ry * math.sin(a)))
+                        for a in (math.pi / 2 * i / segments for i in range(segments + 1))]
+
+            def inward(i, sx=sx, sy=sy):
+                a = math.pi / 2 * (i + 0.5) / segments
+                return (-sx * math.cos(a), -sy * math.sin(a), 0.0)
+
+            def wall(pts, z0, z1, mat, facing_in):
+                for i in range(segments):
+                    (xa, ya), (xb, yb) = pts[i], pts[i + 1]
+                    n = inward(i)
+                    hint = n if facing_in else (-n[0], -n[1], 0.0)
+                    m.face([(xa, ya, z0), (xb, yb, z0), (xb, yb, z1), (xa, ya, z1)], mat, hint)
+
+            wall(arc(0.0), 0.0, tier["base"], "Concrete", True)
+            for r in range(tier["rows"]):
+                near, far = arc(r * row_d), arc((r + 1) * row_d)
+                z0, z1 = tier["base"] + r * tier["rise"], tier["base"] + (r + 1) * tier["rise"]
+                for i in range(segments):
+                    m.face([(*near[i], z0), (*near[i + 1], z0), (*far[i + 1], z0), (*far[i], z0)],
+                           "Steps", (0, 0, 1))
+                wall(far, z0, z1, "Steps", True)
+            rim, outer = arc(back), arc(back + 0.6)
+            wall(rim, tier["top"], back_top, "Concrete", True)
+            for i in range(segments):
+                m.face([(*rim[i], back_top), (*rim[i + 1], back_top), (*outer[i + 1], back_top),
+                        (*outer[i], back_top)], "Facade", (0, 0, 1))
+            wall(outer, 0.0, back_top, "Facade", False)
+    m.build()
+
+
+def build_main_roof(cfg, back, back_top):
+    """A cantilevered canopy over the main (west) stand only, on steel
+    columns behind it with raking beams over the top."""
+    stand = next(s for s in cfg["stands"] if s["id"] == "W")
+    half = stand["blocksPerTier"] * cfg["layout"]["blockWidth"] / 2 + 2.0
+    front, out = STAND_DIRS["W"]
+    frame = stand_matrix(front, out)
+    y0, y1 = -2.0, back + 1.4  # pitch edge -> behind the back wall
+    z0, z1, thick = back_top + 7.5, back_top + 4.0, 0.7  # rises towards the pitch
+
+    r = MeshBuilder("Roof")
+    r.face([(-half, y0, z0), (half, y0, z0), (half, y1, z1), (-half, y1, z1)], "Roof", (0, 0, 1))
+    r.face([(-half, y0, z0 - thick), (half, y0, z0 - thick), (half, y1, z1 - thick), (-half, y1, z1 - thick)],
+           "RoofUnder", (0, 0, -1))
+    r.face([(-half, y0, z0 - thick), (half, y0, z0 - thick), (half, y0, z0), (-half, y0, z0)], "Roof", (0, -1, 0))
+    r.face([(-half, y1, z1 - thick), (half, y1, z1 - thick), (half, y1, z1), (-half, y1, z1)], "Roof", (0, 1, 0))
+    for x, n in ((-half, -1), (half, 1)):
+        r.face([(x, y0, z0 - thick), (x, y1, z1 - thick), (x, y1, z1), (x, y0, z0)], "Roof", (n, 0, 0))
+    r.build(frame, ao=False)
+
+    s = MeshBuilder("Roof_Supports")
+    identity = Matrix.Identity(4)
+    count = int(2 * half / 12.0)
+    for k in range(count + 1):
+        x = -half + 2.0 + k * (2 * half - 4.0) / count
+        yc = back + 1.0
+        s.box(x - 0.45, yc - 0.45, 0.0, x + 0.45, yc + 0.45, z1 - thick, "Steel")
+        limb(s, identity, (x, y1 - 0.2, z1 + 0.05), (x, y0 + 3.0, z0 + 0.55), 0.3, 0.16, "Steel", sides=4,
+             cap1=True)
+        limb(s, identity, (x, yc, z1 + 0.05), (x, yc + 5.0, 0.3), 0.18, 0.18, "Steel", sides=4)
+    s.build(frame)
 
 
 # --------------------------------------------------------------------------
@@ -1084,11 +1198,28 @@ RIDGES = [
     ((1250.0, -1300.0), (0.9, 0.44), 1500.0, 460.0, 130.0),
 ]
 
+# Sétif (setting "highlands"): no sea; a Megriss-like range to the north,
+# its tops under snow in late November, low hills to the south.
+HIGHLAND_RIDGES = [
+    ((-650.0, 1480.0), (0.97, 0.24), 2700.0, 820.0, 430.0),
+    ((1050.0, 1720.0), (0.96, -0.28), 2400.0, 760.0, 370.0),
+    ((1350.0, -1350.0), (0.9, 0.44), 1500.0, 460.0, 140.0),
+    ((-1500.0, -1150.0), (0.5, 0.86), 1400.0, 420.0, 110.0),
+]
+SNOW_PEAK = 250.0  # ridges at least this high get snow caps
+
+
+def by_the_sea():
+    return STYLE["setting"] == "coast"
+
+
 STREETS_X = [-1340.0, -1080.0, -820.0, -560.0, -300.0, 300.0, 560.0, 820.0, 1080.0, 1340.0]
 STREETS_Y = [-1320.0, -1080.0, -840.0, -600.0]
 
 
 def coast_y(x):
+    if not by_the_sea():
+        return EXTENT * 1.4  # beyond everything
     return COAST_Y + 48 * math.sin(x / 170.0) + 22 * math.sin(x / 47.0 + 1.3)
 
 
@@ -1128,6 +1259,12 @@ def build_terrain():
     t = MeshBuilder("Env_Terrain")
     step = 60.0
     xs = [-EXTENT + i * step for i in range(int(2 * EXTENT / step) + 1)]
+    if not by_the_sea():
+        for xa, xb in zip(xs, xs[1:]):
+            t.face([(xa, -EXTENT, Z_TERRAIN), (xb, -EXTENT, Z_TERRAIN), (xb, EXTENT * 1.4, Z_TERRAIN),
+                    (xa, EXTENT * 1.4, Z_TERRAIN)], "Terrain", (0, 0, 1))
+        t.build(ao=False, dim=ENV_DIM)
+        return
     for xa, xb in zip(xs, xs[1:]):
         ya, yb = coast_y(xa), coast_y(xb)
         t.face([(xa, -EXTENT, Z_TERRAIN), (xb, -EXTENT, Z_TERRAIN), (xb, yb, Z_TERRAIN), (xa, ya, Z_TERRAIN)],
@@ -1147,7 +1284,9 @@ def build_hills(rng):
         # the hills (cars, city blocks) keeps the same layout.
         for _ in range(21 * 7):
             rng.uniform(-6.0, 6.0)
-        nx, ny = 40, 14
+        rugged = not by_the_sea()  # mountains: more peaks and a snow line
+        nx, ny = (60, 18) if rugged else (40, 14)
+        snow_line = Z_TERRAIN + peak * 0.78 * 0.6 if rugged and peak >= SNOW_PEAK else None
         grid = []
         for i in range(nx + 1):
             s = -0.5 + i / nx
@@ -1156,14 +1295,17 @@ def build_hills(rng):
                 t = -0.5 + j / ny
                 env = max(0.0, math.cos(math.pi * s)) ** 0.9 * max(0.0, math.cos(math.pi * t)) ** 1.4
                 bumps = 0.8 + 0.14 * math.sin(s * 9.0 + 0.6) + 0.06 * math.sin(s * 23.0 + t * 3.0)
+                if rugged:
+                    bumps += 0.16 * math.sin(s * 17.0 + 1.1) * math.cos(t * 2.4) + 0.05 * math.sin(s * 41.0 + t * 7.0)
                 z = Z_TERRAIN - 0.3 + peak * 0.78 * env * bumps
                 row.append((cx + ux * s * length - uy * t * width, cy + uy * s * length + ux * t * width, z))
             grid.append(row)
         for i in range(nx):
             for j in range(ny):
                 a, b, c, d = grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]
-                h.face([a, b, c], "Hill", (0, 0, 1))
-                h.face([a, c, d], "Hill", (0, 0, 1))
+                for tri in ((a, b, c), (a, c, d)):
+                    top = max(p[2] for p in tri)
+                    h.face(list(tri), "Snow" if snow_line is not None and top > snow_line else "Hill", (0, 0, 1))
     h.build(ao=False, dim=ENV_DIM * 1.15)
 
 
@@ -1257,14 +1399,16 @@ def build_roads(rng):
             r.ribbon([a, b], 12.0, Z_EW, "Asphalt")
             lamps_along(a, b, 70.0, 7.5, lamps)
     for x in STREETS_X:
-        for y0, y1 in ((-CITY, HIGHWAY_Y - 15.0), (HIGHWAY_Y + 15.0, coast_y(x) - 24.0)):
+        for y0, y1 in ((-CITY, HIGHWAY_Y - 15.0), (HIGHWAY_Y + 15.0, min(coast_y(x) - 24.0, CITY))):
             for a, b in off_hills((x, y0), (x, y1)):
                 r.ribbon([a, b], 12.0, Z_NS, "Asphalt")
                 lamps_along(a, b, 70.0, 7.5, lamps)
 
     # Seafront promenade.
-    prom = [(x, coast_y(x) - 9.0) for x in range(-1000, 1201, 40) if not on_hills(x, coast_y(x) - 9.0, 0.02)]
-    r.ribbon(prom, 7.0, Z_WALK, "Kerb")
+    prom = []
+    if by_the_sea():
+        prom = [(x, coast_y(x) - 9.0) for x in range(-1000, 1201, 40) if not on_hills(x, coast_y(x) - 9.0, 0.02)]
+        r.ribbon(prom, 7.0, Z_WALK, "Kerb")
     r.build(ao=False, dim=ENV_DIM)
     return lamps, cars, prom
 
@@ -1347,19 +1491,39 @@ def palm(m, rng, x, y, z=Z_WALK):
         m.face([top, tip, right], "Frond", (0, 0, 1))
 
 
+def conifer(m, rng, x, y, z=Z_WALK):
+    """Highlands: an Aleppo-pine / cypress-like cone on a short trunk."""
+    height = rng.uniform(8.0, 12.5)
+    radius = rng.uniform(1.7, 2.4)
+    m.box(x - 0.22, y - 0.22, z, x + 0.22, y + 0.22, z + 1.6, "Trunk")
+    spin = rng.uniform(0, 2 * math.pi)
+    for base, top, r in ((1.2, height * 0.68, radius), (height * 0.42, height, radius * 0.72)):
+        ring = [(x + r * math.cos(spin + 2 * math.pi * k / 7), y + r * math.sin(spin + 2 * math.pi * k / 7))
+                for k in range(7)]
+        apex = (x, y, z + top)
+        for k in range(7):
+            (xa, ya), (xb, yb) = ring[k], ring[(k + 1) % 7]
+            mid = spin + 2 * math.pi * (k + 0.5) / 7
+            m.face([(xa, ya, z + base), (xb, yb, z + base), apex], "Pine",
+                   (math.cos(mid), math.sin(mid), 0.6))
+        m.face([(px, py, z + base) for px, py in ring], "Pine", (0, 0, -1))
+
+
 def build_palms(rng, promenade):
-    m = MeshBuilder("Env_Palms")
+    """Palms by the sea; conifers on the high plains."""
+    tree = palm if by_the_sea() else conifer
+    m = MeshBuilder("Env_Palms" if by_the_sea() else "Env_Trees")
     plaza = rounded_rect(RING[0] - 10.0, RING[1] - 10.0, RING[2] - 10.0, arc=10, edge=6)
     for x, y in plaza[::2]:
-        palm(m, rng, x, y)
+        tree(m, rng, x, y)
     for y in range(-200, -int(CITY) + 400, -22):
         if abs(y - AVENUE_Y) > ROUNDABOUT_R + 8:
-            palm(m, rng, 0.0, float(y))
+            tree(m, rng, 0.0, float(y))
     for k in range(6):
         a = 2 * math.pi * k / 6
-        palm(m, rng, 9.0 * math.cos(a), AVENUE_Y + 9.0 * math.sin(a))
+        tree(m, rng, 9.0 * math.cos(a), AVENUE_Y + 9.0 * math.sin(a))
     for x, y in promenade[::1]:
-        palm(m, rng, x, y + 4.0)
+        tree(m, rng, x, y + 4.0)
     m.build(ao=False, dim=ENV_DIM * 1.15)
 
 
@@ -1375,30 +1539,10 @@ def build_sports_park():
     m = MeshBuilder("Env_SportsPark")
     z = Z_WALK
 
-    # Aquatic centre (north-west): glass walls under a wave roof.
-    cx, cy, hx, hy = -112.0, 312.0, 62.0, 36.0
-    profile = [(-hy, z), (hy, z), (hy, 9.0), (28.0, 14.0), (18.0, 18.0), (6.0, 20.5),
-               (-6.0, 21.0), (-18.0, 19.5), (-28.0, 15.5), (-hy, 11.0)]
-    count = len(profile)
-    for i in range(count):
-        (ya, za), (yb, zb) = profile[i], profile[(i + 1) % count]
-        if i == count - 1 or za <= z + 0.01 and zb <= z + 0.01:
-            mat = "Glass"
-        else:
-            mat = "PoolRoof" if min(za, zb) > 8.5 and not (ya == yb) else "Glass"
-        if za <= z + 0.01 and zb <= z + 0.01:
-            continue  # floor
-        hint = (0.0, (zb - za), -(yb - ya))
-        m.face([(cx - hx, cy + ya, za), (cx + hx, cy + ya, za), (cx + hx, cy + yb, zb), (cx - hx, cy + yb, zb)],
-               mat, hint)
-    m.face([(cx - hx, cy + yy, zz) for yy, zz in profile], "Glass", (-1, 0, 0))
-    m.face([(cx + hx, cy + yy, zz) for yy, zz in profile], "Glass", (1, 0, 0))
-    for side in (-1, 1):
-        y = cy + side * hy
-        for k in range(8):
-            xa = cx - hx + 3.0 + k * (2 * hx - 6.0) / 8
-            xb = xa + (2 * hx - 6.0) / 8 - 1.6
-            lit_band(m, xa, y, xb, y, z + 1.5, z + 6.5, (0, side), "GlassLit")
+    if by_the_sea():
+        build_aquatic_centre(m, z)
+    else:
+        build_mosque(m, -120.0, 318.0, z)
 
     # Sports hall (north-east).
     cx, cy, hx, hy, h = 116.0, 300.0, 48.0, 34.0, 16.0
@@ -1426,6 +1570,85 @@ def build_sports_park():
                 m.box(px - 0.25, py - 0.25, z, px + 0.25, py + 0.25, 16.0, "Pole")
                 m.box(px - 1.3, py - 1.3, 16.0, px + 1.3, py + 1.3, 16.8, "PitchLight", bottom=True)
     m.build(ao=False, dim=0.85)
+
+
+def build_mosque(m, cx, cy, z):
+    """Highlands: a mosque with a green dome and a minaret whose gallery is
+    lit green, as many are at night."""
+    hx, h = 24.0, 11.0
+    m.box(cx - hx, cy - hx, z, cx + hx, cy + hx, z + h, "MosqueWall")
+    for (xa, ya), (xb, yb), n in (((cx - hx, cy - hx), (cx + hx, cy - hx), (0, -1)),
+                                  ((cx + hx, cy - hx), (cx + hx, cy + hx), (1, 0)),
+                                  ((cx + hx, cy + hx), (cx - hx, cy + hx), (0, 1)),
+                                  ((cx - hx, cy + hx), (cx - hx, cy - hx), (-1, 0))):
+        for k in range(6):  # tall arched windows
+            a, b = (k + 0.3) / 6, (k + 0.7) / 6
+            lit_band(m, xa + (xb - xa) * a, ya + (yb - ya) * a, xa + (xb - xa) * b, ya + (yb - ya) * b,
+                     z + 2.5, z + 8.0, n, "Window")
+    # Drum and dome.
+    r, sides, base = 11.0, 16, z + h
+    drum = [(cx + r * math.cos(2 * math.pi * k / sides), cy + r * math.sin(2 * math.pi * k / sides))
+            for k in range(sides)]
+    m.wall_loop(drum, base, base + 3.0, "MosqueWall")
+    rings = []
+    for i in range(6):
+        phi = math.pi / 2 * i / 6
+        rings.append([(cx + r * math.cos(phi) * math.cos(2 * math.pi * k / sides),
+                       cy + r * math.cos(phi) * math.sin(2 * math.pi * k / sides),
+                       base + 3.0 + r * 0.9 * math.sin(phi)) for k in range(sides)])
+    apex = (cx, cy, base + 3.0 + r * 0.9)
+    for i in range(len(rings)):
+        for k in range(sides):
+            j = (k + 1) % sides
+            out = (math.cos(2 * math.pi * (k + 0.5) / sides), math.sin(2 * math.pi * (k + 0.5) / sides), i / 5)
+            if i + 1 < len(rings):
+                m.face([rings[i][k], rings[i][j], rings[i + 1][j], rings[i + 1][k]], "Dome", out)
+            else:
+                m.face([rings[i][k], rings[i][j], apex], "Dome", out)
+    m.box(cx - 0.3, cy - 0.3, apex[2], cx + 0.3, cy + 0.3, apex[2] + 3.0, "Lamp")
+    # Minaret at the north-east corner.
+    mx, my, w, top = cx + hx + 3.5, cy + hx + 3.5, 3.0, z + 46.0
+    m.box(mx - w, my - w, z, mx + w, my + w, top, "MosqueWall")
+    for n, (xa, ya, xb, yb) in (((0, -1), (mx - w, my - w, mx + w, my - w)), ((1, 0), (mx + w, my - w, mx + w, my + w)),
+                                ((0, 1), (mx + w, my + w, mx - w, my + w)), ((-1, 0), (mx - w, my + w, mx - w, my - w))):
+        lit_band(m, xa, ya, xb, yb, top - 8.0, top - 6.2, n, "MinaretLight")
+        lit_band(m, xa + (xb - xa) * 0.35, ya + (yb - ya) * 0.35, xa + (xb - xa) * 0.65, ya + (yb - ya) * 0.65,
+                 z + 12.0, z + 30.0, n, "Window")
+    m.box(mx - w - 0.6, my - w - 0.6, top - 6.2, mx + w + 0.6, my + w + 0.6, top - 5.6, "MosqueWall", bottom=True)
+    peak = (mx, my, top + 6.0)
+    for (xa, ya), (xb, yb), n in (((mx - w, my - w), (mx + w, my - w), (0, -1)),
+                                  ((mx + w, my - w), (mx + w, my + w), (1, 0)),
+                                  ((mx + w, my + w), (mx - w, my + w), (0, 1)),
+                                  ((mx - w, my + w), (mx - w, my - w), (-1, 0))):
+        m.face([(xa, ya, top), (xb, yb, top), peak], "Dome", (n[0], n[1], 0.5))
+    m.box(mx - 0.25, my - 0.25, peak[2], mx + 0.25, my + 0.25, peak[2] + 2.5, "MinaretLight")
+
+
+def build_aquatic_centre(m, z):
+    # Aquatic centre (north-west): glass walls under a wave roof.
+    cx, cy, hx, hy = -112.0, 312.0, 62.0, 36.0
+    profile = [(-hy, z), (hy, z), (hy, 9.0), (28.0, 14.0), (18.0, 18.0), (6.0, 20.5),
+               (-6.0, 21.0), (-18.0, 19.5), (-28.0, 15.5), (-hy, 11.0)]
+    count = len(profile)
+    for i in range(count):
+        (ya, za), (yb, zb) = profile[i], profile[(i + 1) % count]
+        if i == count - 1 or za <= z + 0.01 and zb <= z + 0.01:
+            mat = "Glass"
+        else:
+            mat = "PoolRoof" if min(za, zb) > 8.5 and not (ya == yb) else "Glass"
+        if za <= z + 0.01 and zb <= z + 0.01:
+            continue  # floor
+        hint = (0.0, (zb - za), -(yb - ya))
+        m.face([(cx - hx, cy + ya, za), (cx + hx, cy + ya, za), (cx + hx, cy + yb, zb), (cx - hx, cy + yb, zb)],
+               mat, hint)
+    m.face([(cx - hx, cy + yy, zz) for yy, zz in profile], "Glass", (-1, 0, 0))
+    m.face([(cx + hx, cy + yy, zz) for yy, zz in profile], "Glass", (1, 0, 0))
+    for side in (-1, 1):
+        y = cy + side * hy
+        for k in range(8):
+            xa = cx - hx + 3.0 + k * (2 * hx - 6.0) / 8
+            xb = xa + (2 * hx - 6.0) / 8 - 1.6
+            lit_band(m, xa, y, xb, y, z + 1.5, z + 6.5, (0, side), "GlassLit")
 
 
 def building(m, rng, x0, y0, x1, y1, floors):
@@ -1463,7 +1686,7 @@ def building(m, rng, x0, y0, x1, y1, floors):
 def build_city(rng):
     m = MeshBuilder("Env_City")
     xs = [-CITY] + STREETS_X[:5] + [0.0] + STREETS_X[5:] + [CITY]
-    ys = [-CITY] + STREETS_Y + [AVENUE_Y, HIGHWAY_Y, COAST_Y + 80.0]
+    ys = [-CITY] + STREETS_Y + [AVENUE_Y, HIGHWAY_Y, COAST_Y + 80.0 if by_the_sea() else CITY]
     count = 0
     for i in range(len(xs) - 1):
         for j in range(len(ys) - 1):
@@ -1488,10 +1711,10 @@ def build_city(rng):
                             and not on_hills(cx, cy, 0.05) and y1 < coast_y(cx) - 28.0
                             and not on_hills(x, y, 0.02) and not on_hills(x1, y1, 0.02)):
                         floors = rng.randint(2, 6)
-                        if cy > HIGHWAY_Y:
+                        if cy > HIGHWAY_Y and by_the_sea():
                             floors += rng.randint(2, 7)  # seafront
                         if cx > 500:
-                            floors += 2  # towards central Oran
+                            floors += 2  # towards the city centre (east in both cities)
                         if rng.random() < 0.04:
                             floors = rng.randint(13, 22)
                         building(m, rng, x, y, x1, y1, floors)
@@ -1517,7 +1740,7 @@ def build_ships(rng):
 
 
 def build_environment():
-    rng = random.Random(2026)
+    rng = random.Random(STYLE["seed"])
     build_terrain()
     build_hills(rng)
     lamps, road_cars, promenade = build_roads(rng)
@@ -1526,7 +1749,8 @@ def build_environment():
     build_palms(rng, promenade)
     build_sports_park()
     buildings = build_city(rng)
-    build_ships(rng)
+    if by_the_sea():
+        build_ships(rng)
     print(f"[stadia] environment: buildings={buildings} lamps={len(lamps)} road_cars={len(road_cars)}")
 
 
@@ -1565,10 +1789,25 @@ def export(path, draco):
     bpy.ops.export_scene.gltf(**kwargs)
 
 
+def apply_style(model):
+    global RIDGES
+    unknown = set(model) - set(STYLE)
+    if unknown:
+        sys.exit(f"[stadia] unknown model options: {sorted(unknown)}")
+    STYLE.update(model)
+    if STYLE["homeKit"] == "ess":
+        KITS["home"] = ("KitBlack", "KitWhite", "KitBlack", "KitWhite")  # ES Sétif black and white
+        KITS["ref"] = ("KitTeal", "KitTeal", "KitBlack", "KitBlack")  # referees change out of black
+    if not by_the_sea():
+        RIDGES = HIGHLAND_RIDGES
+    print(f"[stadia] style: {STYLE}")
+
+
 def main():
     args = parse_args()
     with open(args.config, encoding="utf-8") as fh:
         cfg = json.load(fh)
+    apply_style(cfg.get("model", {}))
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
@@ -1576,8 +1815,14 @@ def main():
     build_pitch()
     build_track()
     back, back_top, blocks = build_stands(cfg)
-    build_corners(cfg, back)
-    build_roof(back, back_top)
+    if STYLE["corners"] == "terraces":
+        build_corner_terraces(cfg, back, back_top)
+    else:
+        build_corners(cfg, back)
+    if STYLE["roof"] == "main":
+        build_main_roof(cfg, back, back_top)
+    else:
+        build_roof(back, back_top)
     build_floodlights(back)
     build_matchday(cfg)
     if not args.no_env:

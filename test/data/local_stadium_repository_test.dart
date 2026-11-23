@@ -49,8 +49,9 @@ void main() {
     final m = (await repo.fetchUpcomingMatches()).last;
     final avail = await repo.fetchAvailability(m.id);
     final block = s.blocks.firstWhere((b) => !avail.block(b.id)!.isSoldOut);
-    final index = Iterable<int>.generate(block.capacity)
-        .firstWhere((i) => !avail.block(block.id)!.isSold(i));
+    final index = Iterable<int>.generate(
+      block.capacity,
+    ).firstWhere((i) => !avail.block(block.id)!.isSold(i));
     final seat = block.seatAt(index);
 
     final receipt = PaymentReceipt(
@@ -72,7 +73,8 @@ void main() {
     final after = await repo.fetchAvailability(m.id);
     expect(after.isSeatFree(block, seat), isFalse);
     expect(
-      () => repo.issueTicket(match: m, seat: seat, vip: false, receipt: receipt),
+      () =>
+          repo.issueTicket(match: m, seat: seat, vip: false, receipt: receipt),
       throwsA(isA<SeatUnavailableException>()),
     );
   });
