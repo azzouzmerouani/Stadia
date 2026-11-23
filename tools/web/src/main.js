@@ -26,7 +26,7 @@ import { installDevHarness } from './dev.js';
 import { Labels } from './labels.js';
 import { loadStadium } from './model.js';
 import { parseSeatId, SeatBlock } from './seats.js';
-import { HORIZON, Sky } from './sky.js';
+import { HORIZON, installSunFog, Sky } from './sky.js';
 
 const params = new URLSearchParams(window.location.search);
 const MODE = params.get('mode') === 'intro' ? 'intro' : 'picker';
@@ -47,13 +47,15 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = SRGBColorSpace;
 renderer.shadowMap.enabled = false;
 
+installSunFog(); // before any material compiles
 const scene = new Scene();
 scene.background = HORIZON.clone();
-// The city runs out to ~1.6 km: it fades into the horizon colour.
+// The city runs out to ~1.6 km: it fades into the horizon colour (warm
+// towards the sunset, see installSunFog).
 scene.fog = new Fog(HORIZON.clone(), 750, 2500);
 
 const camera = new PerspectiveCamera(55, 1, 0.5, 3400);
-const sky = new Sky(3000);
+const sky = new Sky(3000, renderer.getPixelRatio());
 scene.add(sky.group);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;

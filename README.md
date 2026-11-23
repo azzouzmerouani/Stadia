@@ -105,12 +105,17 @@ Options after `--`: `--no-draco` (bigger, easier to inspect),
 `brew install --cask blender` on macOS. The script was written against
 Blender 4.5 LTS. A run takes about a minute.
 
-What it produces (Draco-compressed, about 750 KB and 122k triangles,
+What it produces (Draco-compressed, about 940 KB and 135k triangles,
 budget 5 MB):
 
 - pitch and markings, athletics track;
 - 4 two-tier stands with 56 blocks and merged seat rows;
 - red VIP seating in the West Stand, roof ring, floodlights and concourse;
+- matchday details (`Ceremony_*`, `Boards_LED`, `Goal_Nets`, `Dugouts`,
+  `Fascia_LED_*`): both teams and the referees lined up for the anthems in
+  front of the main stand, a giant Algerian flag held over the centre circle
+  by flag bearers, lit LED advertising boards, a lit ribbon under the upper
+  tier, goal nets and team dugouts;
 - the surroundings at night (`Env_*` meshes, from a fixed seed so every run
   is the same): a stylised Bir El Djir with the sea and a coastal highway to
   the north, a ridge to the west, the ring road, palm-lined plaza and car
@@ -118,9 +123,14 @@ budget 5 MB):
   aquatic centre, a sports hall and two lit training pitches, then about
   1,150 city blocks with lit windows, street lights and cars out to 1.6 km.
 
-The viewer draws the night sky itself (`tools/web/src/sky.js`: gradient
-dome, stars, moon), with fog in the horizon colour so the far city fades
-into it. The surroundings are not pickable and never move the camera
+Kick-off is at dusk. The bake warms every face that looks towards the
+setting sun (west-south-west, 20° up) and cools the faces turned away. The
+viewer draws the matching sky itself (`tools/web/src/sky.js`): a sunset
+gradient, the sun with a lens flare that hides behind the stands, the first
+stars and the moon rising in the east. The fog turns into a warm haze
+towards the sun, so the far city fades into the sunset on that side. The
+sun direction is defined twice, as `SUNSET` in the generator and `SUN_DIR`
+in `sky.js`, and the two must match. The surroundings are not pickable and never move the camera
 framing, which uses the stands and roof only.
 
 Lighting is baked into vertex colours, so the viewer needs no lights or

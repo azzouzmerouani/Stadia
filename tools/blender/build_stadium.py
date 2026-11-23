@@ -25,9 +25,15 @@ Selectable meshes and their names (also stored as glTF node extras):
                          seat_width, row_depth, row_rise.
 
 Lighting is baked into per-face vertex colours (sun + sky + height AO), so
-the viewer renders with unlit materials: no lights, no shadows.
+the viewer renders with unlit materials: no lights, no shadows. Kick-off is
+at dusk: faces turned to the setting sun (SUNSET) are baked warmer.
 
-Everything else (meshes named Env_*) is the night-time neighbourhood: sea to
+Matchday details are static, not selectable: Ceremony_Lineup (both teams
+and the referees lined up for the anthems in front of the main stand),
+Ceremony_Flag and Ceremony_Bearers (a giant Algerian flag over the centre
+circle), Boards_LED, Fascia_LED_<S>, Goal_Nets and Dugouts.
+
+Everything else (meshes named Env_*) is the neighbourhood at dusk: sea to
 the north, hills, roads and street lights, car parks, palms, the aquatic
 centre and sports hall, training pitches and a low-rise city with lit
 windows. It is baked darker than the floodlit bowl; emissive materials
@@ -114,7 +120,30 @@ PALETTE = {
     "RoofUnder": "#B4AECB",
     "Steel": "#9A96B3",
     "Lamp": "#FFF3C8",
-    "FlagGreen": "#1B7A4A",
+    "FlagGreen": "#006233",  # Algerian flag green
+    # ---- matchday: anthem line-up, centre-circle flag, LED boards
+    "FlagWhite": "#F6F7FA",
+    "FlagRed": "#D21034",
+    "Skin1": "#8A5A3C",
+    "Skin2": "#B07850",
+    "Skin3": "#D2A07A",
+    "Skin4": "#5E3B28",
+    "Hair": "#1A1210",
+    "Boots": "#16141C",
+    "KitWhite": "#F2F4F7",
+    "KitGreen": "#0E7A3F",
+    "KitRed": "#D3202F",
+    "KitYellow": "#F2C230",
+    "KitOrange": "#FF7A1A",
+    "KitBlack": "#18151E",
+    "Net": "#E6E9F0",
+    "LedPurple": "#5A1478",
+    "LedInk": "#2A0033",
+    "LedGreen": "#00FF87",
+    "LedCyan": "#05F0FF",
+    "LedLilac": "#953BFF",
+    "LedPink": "#FF1B54",
+    "LedWhite": "#FFFFFF",
     # ---- surroundings
     "Terrain": "#1A1226",
     "Hill": "#2E2140",
@@ -156,12 +185,17 @@ PALETTE = {
 }
 
 EMISSIVE = {"Lamp", "Window", "WindowCool", "GlassLit", "StreetLight", "PitchLight",
-            "Headlight", "Taillight", "Beacon"}
+            "Headlight", "Taillight", "Beacon", "LedPurple", "LedInk", "LedGreen", "LedCyan",
+            "LedLilac", "LedPink", "LedWhite"}
 
 # The surroundings are dimmer than the floodlit bowl (multiplies the bake).
 ENV_DIM = 0.6
 
-SUN = Vector((0.35, -0.55, 0.76)).normalized()
+SUN = Vector((0.35, -0.55, 0.76)).normalized()  # key light (sky + floodlights)
+
+# Matchday is at dusk: the low sun in the west-south-west (azimuth 250 deg,
+# 20 deg up) warms what faces it. Keep in step with SUN_DIR in tools/web/src/sky.js.
+SUNSET = Vector((-0.883, -0.321, 0.342)).normalized()
 
 
 def to_linear(hex_colour):
@@ -350,13 +384,13 @@ class MeshBuilder:
         colours = me.color_attributes.new("Color", "BYTE_COLOR", "CORNER")
         for poly, slot in zip(me.polygons, self.face_mat):
             if self.mats[slot] in EMISSIVE:
-                value = 1.0
+                rgb = (1.0, 1.0, 1.0)
             else:
                 normal = (rot @ poly.normal).normalized()
                 centre = world @ poly.center
-                value = bake_light(normal, centre.z, ao) * dim
+                rgb = sunset_tint(normal, bake_light(normal, centre.z, ao) * dim)
             for li in poly.loop_indices:
-                colours.data[li].color = (value, value, value, 1.0)
+                colours.data[li].color = (*rgb, 1.0)
         me.color_attributes.active_color = colours
 
         ob = bpy.data.objects.new(self.name, me)
@@ -376,6 +410,17 @@ def bake_light(normal, height, ao):
     if ao:
         value *= 0.78 + 0.22 * min(1.0, max(0.0, height / 26.0))
     return min(1.0, value) ** 1.35
+
+
+def sunset_tint(normal, value):
+    """Warm what faces the setting sun, cool what faces away from it."""
+    lit = max(0.0, normal.dot(SUNSET))
+    shade = max(0.0, -normal.dot(SUNSET))
+    v = value * (1.0 + 0.16 * lit)
+    rgb = (v * (1.0 + 0.2 * lit - 0.05 * shade),
+           v * (1.0 - 0.02 * lit - 0.02 * shade),
+           v * (1.0 - 0.2 * lit + 0.07 * shade))
+    return tuple(min(1.0, c) for c in rgb)
 
 
 # --------------------------------------------------------------------------
@@ -725,6 +770,297 @@ def build_floodlights(back):
 
 
 # --------------------------------------------------------------------------
+# Matchday details: anthem line-up, centre-circle flag, LED boards, nets,
+# dugouts and a lit ribbon on the upper-tier fascia.
+# --------------------------------------------------------------------------
+
+SKINS = ("Skin1", "Skin2", "Skin3", "Skin4")
+
+# shirt, sleeves, shorts, socks
+KITS = {
+    "home": ("KitWhite", "KitGreen", "KitGreen", "KitWhite"),  # Algeria home
+    "away": ("KitRed", "KitRed", "KitWhite", "KitRed"),
+    "home_gk": ("KitYellow", "KitYellow", "KitBlack", "KitYellow"),
+    "away_gk": ("KitOrange", "KitOrange", "KitBlack", "KitOrange"),
+    "ref": ("KitBlack", "KitBlack", "KitBlack", "KitBlack"),
+    "bearer": ("KitGreen", "KitGreen", "KitWhite", "KitWhite"),
+}
+
+
+def limb(m, matrix, p0, p1, r0, r1, mat, sides=6, cap0=False, cap1=False):
+    """Tapered prism from p0 to p1 (local, metres) placed by `matrix`.
+    r0 / r1 are a radius or an (across, deep) pair for an oval section."""
+    a, b = Vector(p0), Vector(p1)
+    axis = (b - a).normalized()
+    if abs(axis.z) > 0.9:
+        u, v = Vector((1.0, 0.0, 0.0)), Vector((0.0, 1.0, 0.0))
+    else:
+        u = axis.cross(Vector((0.0, 0.0, 1.0))).normalized()
+        v = u.cross(axis).normalized()
+    rx0, ry0 = (r0, r0) if isinstance(r0, (int, float)) else r0
+    rx1, ry1 = (r1, r1) if isinstance(r1, (int, float)) else r1
+    rot = matrix.to_3x3()
+    ring0, ring1 = [], []
+    for i in range(sides):
+        t = 2 * math.pi * (i + 0.5) / sides
+        c, s = math.cos(t), math.sin(t)
+        ring0.append(matrix @ (a + u * (c * rx0) + v * (s * ry0)))
+        ring1.append(matrix @ (b + u * (c * rx1) + v * (s * ry1)))
+    for i in range(sides):
+        j = (i + 1) % sides
+        t = 2 * math.pi * (i + 1.0) / sides
+        out = rot @ (u * math.cos(t) + v * math.sin(t))
+        m.face([ring0[i], ring0[j], ring1[j], ring1[i]], mat, out)
+    if cap0:
+        m.face(ring0, mat, rot @ -axis)
+    if cap1:
+        m.face(ring1, mat, rot @ axis)
+    return ring1
+
+
+def figure(m, matrix, kit, skin, hair="Hair"):
+    """A low-poly footballer standing to attention, facing local +Y, 1.8 m
+    tall before `matrix` scales it."""
+    shirt, sleeves, shorts, socks = KITS[kit]
+    for sx in (-1, 1):
+        x = sx * 0.1
+        m.oriented_box(matrix @ Matrix.Translation((x, 0.06, 0.045)), 0.055, 0.14, 0.045, "Boots", bottom=False)
+        limb(m, matrix, (x, 0, 0.09), (x, 0, 0.5), 0.055, 0.066, socks)
+        limb(m, matrix, (x, 0, 0.5), (x, 0, 0.64), 0.066, 0.078, skin)
+        limb(m, matrix, (sx * 0.255, 0, 1.42), (sx * 0.275, 0, 1.17), 0.058, 0.05, sleeves, cap0=True)
+        limb(m, matrix, (sx * 0.275, 0, 1.17), (sx * 0.27, 0.02, 0.84), 0.045, 0.04, skin, cap1=True)
+    limb(m, matrix, (0, 0, 0.6), (0, 0, 0.95), (0.2, 0.12), (0.185, 0.12), shorts, sides=8, cap0=True)
+    limb(m, matrix, (0, 0, 0.93), (0, 0, 1.45), (0.17, 0.11), (0.235, 0.12), shirt, sides=8, cap1=True)
+    limb(m, matrix, (0, 0, 1.44), (0, 0.005, 1.54), 0.05, 0.05, skin)
+    limb(m, matrix, (0, 0.005, 1.53), (0, 0.0, 1.665), (0.08, 0.09), (0.094, 0.104), skin, sides=8)
+    ring = limb(m, matrix, (0, 0.0, 1.665), (0, -0.004, 1.735), (0.094, 0.104), (0.1, 0.108), hair, sides=8)
+    apex = matrix @ Vector((0.0, -0.012, 1.79))
+    rot = matrix.to_3x3()
+    for i in range(len(ring)):
+        j = (i + 1) % len(ring)
+        m.face([ring[i], ring[j], apex], hair, rot @ Vector((0, 0, 1)))
+
+
+def place(x, y, facing, height=1.8):
+    """Figure matrix: stands at (x, y) on the grass, local +Y towards
+    `facing` (radians, 0 = +Y / north)."""
+    k = height / 1.8
+    return (Matrix.Translation((x, y, 0.05)) @ Matrix.Rotation(facing, 4, "Z")
+            @ Matrix.Diagonal((0.96 + 0.06 * k, 0.96 + 0.06 * k, k, 1.0)))
+
+
+def flag_height(u, v, length, height):
+    """Cloth held at the edges by the bearers, sagging in the middle."""
+    e = max(abs(2 * u / length), abs(2 * v / height))
+    return 0.5 + 0.42 * e ** 3 + 0.05 * math.sin(u * 0.8 + v * 0.5)
+
+
+def build_flag(rng):
+    """Giant Algerian flag spread over the centre circle by flag bearers.
+    Flag coordinates: u from hoist to fly, v up the flag. Seen from the main
+    (west) stand the hoist is on the left (north) and the top is east."""
+    m = MeshBuilder("Ceremony_Flag")
+    length, height = 22.0, 14.6
+    world = lambda u, v, dz=0.0: (v, -u, flag_height(u, v, length, height) + dz)
+    cols, rows = 16, 10
+    for i in range(cols):
+        u0 = -length / 2 + length * i / cols
+        u1 = -length / 2 + length * (i + 1) / cols
+        mat = "FlagGreen" if u1 <= 0 else "FlagWhite"
+        for j in range(rows):
+            v0 = -height / 2 + height * j / rows
+            v1 = -height / 2 + height * (j + 1) / rows
+            m.face([world(u0, v0), world(u1, v0), world(u1, v1), world(u0, v1)], mat, (0, 0, 1))
+    # Crescent: outer disc minus an inner disc shifted towards the fly.
+    big, small, shift = height * 0.25, height * 0.2, height * 0.07
+    xi = (shift ** 2 + big ** 2 - small ** 2) / (2 * shift)
+    yi = math.sqrt(big ** 2 - xi ** 2)
+    a_out = math.atan2(yi, xi)
+    a_in = math.atan2(yi, xi - shift)
+    steps = 28
+    prev = None
+    for k in range(steps + 1):
+        t = k / steps
+        ao = a_out + t * (2 * math.pi - 2 * a_out)
+        ai = a_in + t * (2 * math.pi - 2 * a_in)
+        o = (big * math.cos(ao), big * math.sin(ao))
+        n = (shift + small * math.cos(ai), small * math.sin(ai))
+        if prev:
+            (po, pn) = prev
+            m.face([world(*po, 0.03), world(*o, 0.03), world(*n, 0.03), world(*pn, 0.03)], "FlagRed", (0, 0, 1))
+        prev = (o, n)
+    # Five-pointed star in the crescent's opening.
+    cx, r_out = height * 0.115, height * 0.09
+    pts = []
+    for k in range(10):
+        a = math.pi / 2 + math.pi * k / 5
+        r = r_out if k % 2 == 0 else r_out * 0.382
+        pts.append((cx + r * math.cos(a - math.pi / 2), r * math.sin(a - math.pi / 2)))
+    centre = world(cx, 0.0, 0.03)
+    for k in range(10):
+        m.face([centre, world(*pts[k], 0.03), world(*pts[(k + 1) % 10], 0.03)], "FlagRed", (0, 0, 1))
+    m.build(ao=False)
+
+    bearers = MeshBuilder("Ceremony_Bearers")
+    spots = []
+    for k in range(7):
+        u = -length / 2 + length * (k + 0.5) / 7
+        spots.append((u, height / 2 + 0.45))
+        spots.append((u, -height / 2 - 0.45))
+    for k in range(3):
+        v = -height / 2 + height * (k + 0.5) / 3
+        spots.append((length / 2 + 0.45, v))
+        spots.append((-length / 2 - 0.45, v))
+    for u, v in spots:
+        x, y, _ = world(u, v)
+        facing = math.atan2(x, -y)  # local +Y towards the centre
+        mat = place(x, y, facing, rng.uniform(1.66, 1.86))
+        figure(bearers, mat, "bearer", rng.choice(SKINS))
+    bearers.build(ao=False)
+
+
+def build_lineup(rng):
+    """Both teams and the referees lined up for the anthems in front of the
+    main (west) stand, facing it."""
+    m = MeshBuilder("Ceremony_Lineup")
+    x = -PITCH_WIDTH / 2 + 9.0
+    facing = math.pi / 2  # local +Y -> world -X (west)
+    for k, y in enumerate((-0.8, 0.0, 0.8)):
+        figure(m, place(x, y, facing, rng.uniform(1.74, 1.84)), "ref", rng.choice(SKINS))
+    for team, sign in (("home", 1), ("away", -1)):
+        for k in range(11):
+            kit = f"{team}_gk" if k == 1 else team
+            y = sign * (1.75 + k * 0.78)
+            figure(m, place(x + rng.uniform(-0.06, 0.06), y, facing, rng.uniform(1.72, 1.93)), kit,
+                   rng.choice(SKINS))
+    m.build(ao=False)
+
+
+def led_panel(m, a, b, z0, z1, normal, bg, fg, inset=0.012):
+    """LED advertising panel from a to b (2D) with a lit 'logo' bar."""
+    nx, ny = normal
+    ox, oy = nx * inset, ny * inset
+    m.face([(a[0] + ox, a[1] + oy, z0), (b[0] + ox, b[1] + oy, z0),
+            (b[0] + ox, b[1] + oy, z1), (a[0] + ox, a[1] + oy, z1)], bg, (nx, ny, 0))
+    if fg:
+        ox2, oy2 = nx * (inset + 0.01), ny * (inset + 0.01)
+        ta, tb = 0.2, 0.8
+        za, zb = z0 + (z1 - z0) * 0.32, z0 + (z1 - z0) * 0.68
+        pa = (a[0] + (b[0] - a[0]) * ta, a[1] + (b[1] - a[1]) * ta)
+        pb = (a[0] + (b[0] - a[0]) * tb, a[1] + (b[1] - a[1]) * tb)
+        m.face([(pa[0] + ox2, pa[1] + oy2, za), (pb[0] + ox2, pb[1] + oy2, za),
+                (pb[0] + ox2, pb[1] + oy2, zb), (pa[0] + ox2, pa[1] + oy2, zb)], fg, (nx, ny, 0))
+
+
+LED_ADS = (("LedPurple", "LedGreen"), ("LedCyan", "LedInk"), ("LedPink", "LedWhite"),
+           ("LedGreen", "LedInk"), ("LedLilac", "LedWhite"))
+
+
+def build_led_boards():
+    """The pitch-side boards light up: a run of brand-coloured adverts."""
+    m = MeshBuilder("Boards_LED")
+    seg = 5.0
+    runs = []
+    for sx in (-1, 1):  # side boards, lit face towards the pitch
+        x = sx * 35.6
+        runs.append([((x, -40 + seg * i), (x, -40 + seg * (i + 1)), (-sx, 0)) for i in range(16)])
+    for sy in (-1, 1):
+        y = sy * 56.0
+        cells = [(-14 + 4.0 * i, -14 + 4.0 * (i + 1)) for i in range(7)]
+        runs.append([((x0, y), (x1, y), (0, -sy)) for x0, x1 in cells])
+    k = 0
+    for run in runs:
+        for a, b, n in run:
+            bg, fg = LED_ADS[k % len(LED_ADS)]
+            led_panel(m, a, b, 0.08, 0.84, n, bg, fg)
+            k += 1
+    m.build(ao=False)
+
+
+def net_line(m, a, b, across, width=0.05, mat="Net"):
+    """A thin double-sided strip from a to b, `across` = its width axis."""
+    a, b, w = Vector(a), Vector(b), Vector(across).normalized() * (width / 2)
+    quad = [a - w, b - w, b + w, a + w]
+    n = (b - a).cross(w)
+    m.face(quad, mat, n)
+    m.face(quad, mat, -n)
+
+
+def build_nets():
+    m = MeshBuilder("Goal_Nets")
+    l2 = PITCH_LENGTH / 2
+    hw, top, gap = 3.66, 2.4, 0.5
+    for s in (1, -1):
+        gy, back = s * l2, s * (l2 + 2.0)
+        xs = [-hw + i * (2 * hw) / 15 for i in range(16)]
+        for x in xs:  # back: verticals, roof: lines front to back
+            net_line(m, (x, back, 0.0), (x, back, top), (1, 0, 0))
+            net_line(m, (x, gy, top), (x, back, top), (1, 0, 0))
+        for z in (0.5, 1.0, 1.5, 2.0):
+            net_line(m, (-hw, back, z), (hw, back, z), (0, 0, 1))
+            for x in (-hw, hw):
+                net_line(m, (x, gy, z), (x, back, z), (0, 0, 1))
+        for t in (0.5, 1.0, 1.5):
+            y = gy + s * t
+            net_line(m, (-hw, y, top), (hw, y, top), (0, 1, 0))
+            for x in (-hw, hw):
+                net_line(m, (x, y, 0.0), (x, y, top), (0, 1, 0))
+    m.build(ao=False)
+
+
+def build_dugouts():
+    """Team benches between the track and the main (west) stand."""
+    m = MeshBuilder("Dugouts")
+    x_back, x_front = -STAND_FRONT_EW + 0.4, -STAND_FRONT_EW + 2.9
+    for y0, y1, seat in ((3.0, 15.0, "KitGreen"), (-15.0, -3.0, "KitRed")):
+        m.box(x_back, y0, 0.0, x_back + 0.25, y1, 2.3, "Facade")
+        for y in (y0, y1 - 0.15):
+            m.box(x_back, y, 0.0, x_front, y + 0.15, 2.3, "Facade")
+        roof = [(x_back - 0.1, 2.3), (x_front + 0.3, 2.05)]
+        m.face([(roof[0][0], y0 - 0.1, roof[0][1]), (roof[1][0], y0 - 0.1, roof[1][1]),
+                (roof[1][0], y1 + 0.1, roof[1][1]), (roof[0][0], y1 + 0.1, roof[0][1])], "Roof", (0.1, 0, 1))
+        m.face([(roof[0][0], y0 - 0.1, roof[0][1] - 0.12), (roof[1][0], y0 - 0.1, roof[1][1] - 0.12),
+                (roof[1][0], y1 + 0.1, roof[1][1] - 0.12), (roof[0][0], y1 + 0.1, roof[0][1] - 0.12)],
+               "RoofUnder", (0, 0, -1))
+        m.box(x_back + 0.25, y0 + 0.2, 0.0, x_back + 0.9, y1 - 0.2, 0.45, seat)
+        m.box(x_back + 0.25, y0 + 0.2, 0.45, x_back + 0.4, y1 - 0.2, 1.05, seat)
+    m.build(ao=False)
+
+
+def build_fascia_ribbon(cfg):
+    """A lit LED ribbon on the front of the upper tier, all round the bowl."""
+    tiers, _ = stand_profile(cfg)
+    if len(tiers) < 2:
+        return
+    lower, upper = tiers[0], tiers[1]
+    y = upper["off"] - 0.04  # on the wall under the upper tier, above the vomitories
+    z0, z1 = lower["top"] + 2.16, upper["base"] - 0.04
+    block_w = cfg["layout"]["blockWidth"]
+    accents = ("LedGreen", "LedCyan", "LedWhite", "LedCyan")
+    for stand in cfg["stands"]:
+        front, out = STAND_DIRS[stand["id"]]
+        frame = stand_matrix(front, out)
+        per_tier = stand["blocksPerTier"]
+        half = per_tier * block_w / 2
+        m = MeshBuilder("Fascia_LED_" + stand["id"])
+        for b in range(per_tier):
+            xa = -half + b * block_w
+            led_panel(m, (xa, y), (xa + block_w, y), z0, z1, (0, -1), "LedPurple",
+                      accents[(b + "NESW".index(stand["id"])) % len(accents)], inset=0.0)
+        m.build(frame, ao=False)
+
+
+def build_matchday(cfg):
+    rng = random.Random(1962)  # independence year: fixed, so every run is identical
+    build_led_boards()
+    build_nets()
+    build_dugouts()
+    build_fascia_ribbon(cfg)
+    build_lineup(rng)
+    build_flag(rng)
+
+
+# --------------------------------------------------------------------------
 # Surroundings (night): a stylised Bir El Djir, Oran. Sea to the north, a
 # Murdjadjo-like ridge to the west, the Mediterranean Games sports park
 # around the stadium, the city around that.
@@ -804,20 +1140,23 @@ def build_terrain():
 
 
 def build_hills(rng):
+    """Rounded ridges; against the sunset sky they read as soft silhouettes."""
     h = MeshBuilder("Env_Hills")
     for (cx, cy), (ux, uy), length, width, peak in RIDGES:
-        nx, ny = 22, 8
+        # Draw what the old jagged version drew, so everything built after
+        # the hills (cars, city blocks) keeps the same layout.
+        for _ in range(21 * 7):
+            rng.uniform(-6.0, 6.0)
+        nx, ny = 40, 14
         grid = []
         for i in range(nx + 1):
             s = -0.5 + i / nx
             row = []
             for j in range(ny + 1):
                 t = -0.5 + j / ny
-                env = max(0.0, math.cos(math.pi * s)) * max(0.0, math.cos(math.pi * t))
-                bumps = 0.72 + 0.18 * math.sin(i * 1.9 + j * 0.7) + 0.1 * math.sin(i * 0.55 - j * 1.3)
-                z = Z_TERRAIN - 0.3 + peak * (env ** 1.25) * bumps
-                if 0 < i < nx and 0 < j < ny:
-                    z += rng.uniform(-6.0, 6.0) * env
+                env = max(0.0, math.cos(math.pi * s)) ** 0.9 * max(0.0, math.cos(math.pi * t)) ** 1.4
+                bumps = 0.8 + 0.14 * math.sin(s * 9.0 + 0.6) + 0.06 * math.sin(s * 23.0 + t * 3.0)
+                z = Z_TERRAIN - 0.3 + peak * 0.78 * env * bumps
                 row.append((cx + ux * s * length - uy * t * width, cy + uy * s * length + ux * t * width, z))
             grid.append(row)
         for i in range(nx):
@@ -1240,6 +1579,7 @@ def main():
     build_corners(cfg, back)
     build_roof(back, back_top)
     build_floodlights(back)
+    build_matchday(cfg)
     if not args.no_env:
         build_environment()
 
