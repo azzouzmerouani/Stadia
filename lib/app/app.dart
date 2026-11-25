@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/providers.dart';
 import '../l10n/l10n.dart';
+import '../ui/phone_column.dart';
 import '../ui/theme.dart';
 import 'router.dart';
 
@@ -20,6 +21,9 @@ class StadiaApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: ref.watch(routerProvider),
+      scrollBehavior: const StadiaScrollBehavior(),
+      // Web: a phone-width column in wide windows.
+      builder: (context, child) => PhoneColumn(child: child!),
     );
   }
 }

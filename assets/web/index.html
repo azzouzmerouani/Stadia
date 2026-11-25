@@ -94,6 +94,26 @@
   <div id="fade"></div>
   <div id="debug"></div>
   <script>
+    // Flutter web runs this page in a same-origin <iframe>: with no
+    // webview_flutter channel (iOS/Android inject StadiaBridge before any
+    // script runs), the bridge is postMessage to and from the parent.
+    // Messages from any other window or origin are dropped.
+    (function () {
+      if (window.StadiaBridge || window.parent === window) return;
+      var origin = window.location.origin;
+      window.StadiaBridge = {
+        postMessage: function (json) {
+          window.parent.postMessage({ stadiaBridge: String(json) }, origin);
+        }
+      };
+      window.addEventListener('message', function (e) {
+        if (e.source !== window.parent || e.origin !== origin) return;
+        var d = e.data;
+        if (d && typeof d.stadia === 'string' && window.stadia) window.stadia.receive(d.stadia);
+      });
+    })();
+  </script>
+  <script>
     // Surface load/runtime failures to Flutter (no console there).
     (function () {
       function report(message) {

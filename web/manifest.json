@@ -1,0 +1,42 @@
+{
+    "name": "Stadia",
+    "short_name": "Stadia",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#1E0021",
+    "theme_color": "#1E0021",
+    "description": "Pick your team, fly into the stadium in 3D and see the view from your seat before you buy your ticket.",
+    "lang": "ar",
+    "dir": "rtl",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        },
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

@@ -299,10 +299,13 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
                                 ),
                               ),
                           child: seated
-                              ? SeatPanel(
-                                  key: _panelKey,
-                                  matchId: widget.matchId,
-                                  onTicket: _onTicket,
+                              ? OverScene(
+                                  key: const ValueKey('seated'),
+                                  child: SeatPanel(
+                                    key: _panelKey,
+                                    matchId: widget.matchId,
+                                    onTicket: _onTicket,
+                                  ),
                                 )
                               : Column(
                                   key: const ValueKey('picking'),
@@ -313,12 +316,14 @@ class _SeatPickerScreenState extends ConsumerState<SeatPickerScreen> {
                                         duration: StadiaMotion.medium,
                                       ),
                                     const SizedBox(height: 10),
-                                    SelectionCard(
-                                      summary: value.machine.summarize(
-                                        state,
-                                        value.match,
+                                    OverScene(
+                                      child: SelectionCard(
+                                        summary: value.machine.summarize(
+                                          state,
+                                          value.match,
+                                        ),
+                                        hint: l10n.tapStandHint,
                                       ),
-                                      hint: l10n.tapStandHint,
                                     ),
                                   ],
                                 ),
@@ -377,55 +382,59 @@ class _TopBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          GlassSurface(
-            key: cardKey,
-            shadow: true,
-            padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 16, 12),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    GlassIconButton(
-                      glyph: StadiaGlyph.back,
-                      size: 40,
-                      onPressed: onBack,
-                      semanticLabel: step == BookingStep.stand
-                          ? l10n.backToMatches
-                          : l10n.back,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: StadiaText.label,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: StadiaText.caption,
-                          ),
-                        ],
+          OverScene(
+            child: GlassSurface(
+              key: cardKey,
+              shadow: true,
+              padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 16, 12),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      GlassIconButton(
+                        glyph: StadiaGlyph.back,
+                        size: 40,
+                        onPressed: onBack,
+                        semanticLabel: step == BookingStep.stand
+                            ? l10n.backToMatches
+                            : l10n.back,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(start: 8),
-                  child: StepProgressBar(
-                    labels: [for (final s in BookingStep.values) l10n.step(s)],
-                    current: step.index,
-                    onStepTap: onStepTap,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: StadiaText.label,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: StadiaText.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 8),
+                    child: StepProgressBar(
+                      labels: [
+                        for (final s in BookingStep.values) l10n.step(s),
+                      ],
+                      current: step.index,
+                      onStepTap: onStepTap,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           AnimatedSwitcher(

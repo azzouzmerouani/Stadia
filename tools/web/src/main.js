@@ -33,6 +33,9 @@ const params = new URLSearchParams(window.location.search);
 const MODE = params.get('mode') === 'intro' ? 'intro' : 'picker';
 // Which stadium: its model is 3d/<id>.glb (ids are lower-case slugs).
 const STADIUM = /^[a-z0-9-]{1,40}$/.test(params.get('stadium') || '') ? params.get('stadium') : 'miloud-hadefi';
+// Where the models are, relative to this page: 3d/ on the app's loopback
+// server, ../3d/ in the Flutter web build (assets/web next to assets/3d).
+const MODELS = params.get('models') === '../3d' ? '../3d' : '3d';
 const DEBUG = params.has('debug');
 const SPIN = params.has('spin'); // perf testing: render every frame
 
@@ -697,7 +700,7 @@ async function boot() {
   resize();
   let tModel = 0;
   try {
-    model = await loadStadium(`3d/${STADIUM}.glb`);
+    model = await loadStadium(`${MODELS}/${STADIUM}.glb`);
     tModel = performance.now();
   } catch (err) {
     console.error(err);

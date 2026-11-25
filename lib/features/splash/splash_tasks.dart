@@ -4,7 +4,7 @@ import '../../app/routes.dart';
 import '../../data/favourite_team.dart';
 import '../../data/models/match.dart';
 import '../../data/providers.dart';
-import '../stadium3d/local_asset_server.dart';
+import '../stadium3d/stadium_view.dart';
 
 /// What the splash screen waits for, and where it goes next: the team
 /// picker the first time, then straight to the favourite team's stadium.
@@ -22,7 +22,7 @@ class SplashTasks {
       _ref.read(stadiumsProvider.future),
       _ref.read(teamsProvider.future),
       _ref.read(upcomingMatchesProvider.future),
-      _ref.read(localAssetServerProvider.future), // serves the 3D viewer
+      _ref.read(sceneHostProvider.future), // the 3D viewer's server, if any
       _ref.read(favouriteTeamProvider.notifier).load(),
     ]);
     final teams = results[1]! as List<Team>;

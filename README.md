@@ -1,9 +1,9 @@
 # Stadia
 
-Stadium ticket booking for iOS and Android with a 3D seat picker. You find the
-match on a map, pick your stand, block and seat on an interactive 3D model of
-the stadium, sit in that seat (the live 3D view from it, full screen), pay,
-and get a ticket with an entry QR code.
+Stadium ticket booking for iOS, Android and the web with a 3D seat picker.
+You find the match on a map, pick your stand, block and seat on an
+interactive 3D model of the stadium, sit in that seat (the live 3D view from
+it, full screen), pay, and get a ticket with an entry QR code.
 
 The app is in Arabic (Algeria) with English as a second locale, set in Cairo,
 and its design system follows the Fantasy Premier League site: the purple
@@ -68,6 +68,30 @@ flutter run
 Pick a device with `-d`, e.g. `flutter run -d "iPhone 17 Pro"` or
 `flutter run -d emulator-5554`.
 
+### Web
+
+```bash
+flutter run -d chrome
+```
+
+Release build, static files in `build/web` for any static host:
+
+```bash
+flutter build web --release
+```
+
+Serve it locally and open `http://localhost:8790`:
+
+```bash
+python3 -m http.server 8790 --directory build/web
+```
+
+Served from a sub-path, build with `--base-href /stadia/`. The app uses hash
+URLs (`/#/map`), so the host needs no rewrite rules. In a wide window it runs
+in a phone-width column; at phone width it fills the screen, as the app does.
+
+### Debugging the 3D view
+
 Show the 3D overlay (fps, draw calls) and stream `stats` messages:
 
 ```bash
@@ -95,6 +119,7 @@ The tests cover:
 - the checkout service (charge, VIP, declined, cancelled, seat taken before
   paying);
 - the loopback asset server, the intro screen and the map screen;
+- the phone-width column for wide browser windows;
 - the mock repository.
 
 ## Regenerating the 3D model
@@ -193,7 +218,8 @@ lib/
   l10n/           ARB files (ar, en) + generated AppLocalizations
   ui/             design system: FPL-style tokens, Cairo text styles, glass
                   surface, pill buttons, hand-drawn glyphs (no icon packs),
-                  loaders, team crests, ar_DZ / en number and date formats
+                  loaders, team crests, ar_DZ / en number and date formats,
+                  phone-width column for wide browser windows
   data/
     models/       Stadium, Stand, Block, SeatRef, FootballMatch, Ticket, ...
     repositories/ StadiumRepository (interface) + LocalStadiumRepository (JSON)
@@ -201,10 +227,11 @@ lib/
     favourite_team.dart  saved favourite club + where it takes you (TeamPlan)
     providers.dart Riverpod wiring (swap implementations here)
   features/
-    splash/       boot tasks (data + 3D server), then team picker or intro
+    splash/       boot tasks (data + 3D server on iOS/Android), then team
+                  picker or intro
     team/         favourite-team picker
-    stadium3d/    loopback asset server, WebView, scene controller, protocol,
-                  intro screen
+    stadium3d/    loopback asset server + WebView (iOS/Android), iframe
+                  (web), scene controller, protocol, intro screen
     map/          flutter_map + OSM, gates, stadium marker, stadium switcher
     matches/      upcoming matches card
     seat_picker/  BookingMachine (pure), BookingController, picker screen,
@@ -213,6 +240,7 @@ lib/
 tools/
   blender/        build_stadium.py (headless model generator)
   web/            Three.js viewer sources + esbuild bundling + dev server
+web/              Flutter web shell: index.html, manifest, icons
 assets/
   data/           stadiums/<id>.json, matches.json
   3d/             <id>.glb (one model per stadium)
@@ -242,6 +270,23 @@ Draco decoder runs in a Worker that needs a real origin. Restrictions:
 
 Cleartext HTTP is allowed only for 127.0.0.1/localhost: Android
 `network_security_config.xml`, iOS `NSAllowsLocalNetworking`.
+
+**3D on the web.** The web build has no WebView and no `dart:io`. A
+conditional import in `stadium_view.dart` picks `stadium_platform_web.dart`,
+so neither reaches the web compiler. The app's own origin already serves
+`assets/web` and `assets/3d`, so there is no server to start:
+
+- the same viewer page runs in a same-origin `<iframe>`
+  (`stadium_frame_view.dart`) and finds the models at `../3d/`
+  (`?models=../3d`);
+- `index.html` defines `StadiaBridge` only when it is framed without a native
+  channel; the page posts `{stadiaBridge: json}` to its parent and Flutter
+  posts `{stadia: json}` back, and both sides drop messages from any other
+  window or origin;
+- the iframe sits above Flutter's pointer handling, so the cards and buttons
+  drawn over the scene are wrapped in `OverScene`, which puts an invisible
+  DOM element under them (as `pointer_interceptor` does). Notes that should
+  let drags through, like the seat-view hint, stay unwrapped.
 
 **Rendering budget.** All of these target 60 fps on mid-range Android:
 

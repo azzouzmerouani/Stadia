@@ -169,13 +169,15 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
               top: false,
               minimum: const EdgeInsets.only(bottom: StadiaSpace.lg),
               child: Center(
-                child: StadiaButton(
-                  label: l10n.skip,
-                  variant: StadiaButtonVariant.glass,
-                  expand: false,
-                  height: 48,
-                  trailing: StadiaGlyph.skip,
-                  onPressed: _skip,
+                child: OverScene(
+                  child: StadiaButton(
+                    label: l10n.skip,
+                    variant: StadiaButtonVariant.glass,
+                    expand: false,
+                    height: 48,
+                    trailing: StadiaGlyph.skip,
+                    onPressed: _skip,
+                  ),
                 ),
               ),
             ),
