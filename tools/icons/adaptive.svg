@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <!-- Android adaptive icon layers on the 108 dp canvas. build_icons.sh
+       renders one layer at a time by keeping only #background,
+       #foreground or #monochrome. The launcher shows the middle 72 dp; the
+       glyph stays inside the 66 dp safe circle. -->
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#00FF87"/>
+      <stop offset="1" stop-color="#05F0FF"/>
+    </linearGradient>
+    <radialGradient id="bg" cx="30%" cy="22%" r="85%">
+      <stop offset="0" stop-color="#541E5D"/>
+      <stop offset="1" stop-color="#1E0021"/>
+    </radialGradient>
+  </defs>
+  <rect id="background" width="108" height="108" fill="url(#bg)"/>
+  <g id="foreground" transform="translate(54 55) scale(2.1) translate(-12 -12)"
+     fill="none" stroke="url(#g)" stroke-width="1.9" stroke-linecap="round">
+    <ellipse cx="12" cy="10" rx="9" ry="4"/>
+    <ellipse cx="12" cy="10" rx="4" ry="1.7"/>
+    <path d="M3 10V14M21 10V14M3 14A9 4 0 0 0 21 14"/>
+  </g>
+  <!-- Android 13+ themed icons: only the alpha counts. -->
+  <g id="monochrome" transform="translate(54 55) scale(2.1) translate(-12 -12)"
+     fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round">
+    <ellipse cx="12" cy="10" rx="9" ry="4"/>
+    <ellipse cx="12" cy="10" rx="4" ry="1.7"/>
+    <path d="M3 10V14M21 10V14M3 14A9 4 0 0 0 21 14"/>
+  </g>
+</svg>

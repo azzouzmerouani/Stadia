@@ -210,6 +210,28 @@ availability and steps and answers taps. Esc goes back,
 I simulates the tall checkout panel. `mode=intro` plays
 the intro; `&spin` auto-rotates and renders every frame (for fps checks).
 
+## Regenerating the app icons
+
+The icons are drawn from the app's stadium glyph, as SVGs in `tools/icons/`:
+
+- `icon.svg`: the full-bleed icon. It gives the iOS set (opaque, iOS rounds
+  the corners), the web maskable icons, and the rounded legacy Android and
+  web icons.
+- `adaptive.svg`: the Android adaptive icon layers: background, foreground
+  and monochrome (Android 13 themed icons). The glyph stays inside the
+  66 dp safe circle.
+- `favicon.svg`: a bolder glyph for 16 to 32 px.
+
+Needs Inkscape 1.x and ImageMagick 7:
+
+```bash
+bash tools/icons/build_icons.sh
+```
+
+Inkscape renders each SVG once at full size and ImageMagick scales it to
+every size in the iOS asset catalog, the five Android densities and the web
+manifest.
+
 ## Architecture
 
 ```text
@@ -239,6 +261,7 @@ lib/
     ticket/       Checkout service, ticket screen, notched ticket card
 tools/
   blender/        build_stadium.py (headless model generator)
+  icons/          app icon SVGs + build_icons.sh (iOS, Android, web)
   web/            Three.js viewer sources + esbuild bundling + dev server
 web/              Flutter web shell: index.html, manifest, icons
 assets/
