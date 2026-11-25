@@ -41,69 +41,75 @@ class TicketScreen extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: StadiaColors.page,
         body: SafeArea(
-          child: ticket == null
-              ? _Missing(onHome: home)
-              : Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(
-                          StadiaSpace.gutter,
-                          StadiaSpace.xl,
-                          StadiaSpace.gutter,
-                          StadiaSpace.xl,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _Header(ticket: ticket),
-                            const SizedBox(height: StadiaSpace.xxl),
-                            TicketCard(ticket: ticket)
-                                .animate()
-                                .fadeIn(
-                                  delay: 120.ms,
+          // Wide windows: a ticket-width column, centred.
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: ticket == null
+                  ? _Missing(onHome: home)
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(
+                              StadiaSpace.gutter,
+                              StadiaSpace.xl,
+                              StadiaSpace.gutter,
+                              StadiaSpace.xl,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _Header(ticket: ticket),
+                                const SizedBox(height: StadiaSpace.xxl),
+                                TicketCard(ticket: ticket)
+                                    .animate()
+                                    .fadeIn(
+                                      delay: 120.ms,
+                                      duration: StadiaMotion.slow,
+                                    )
+                                    .slideY(
+                                      begin: 0.06,
+                                      end: 0,
+                                      delay: 120.ms,
+                                      duration: StadiaMotion.slow,
+                                      curve: StadiaMotion.emphasized,
+                                    ),
+                                const SizedBox(height: StadiaSpace.lg),
+                                _GatesNote(ticket: ticket).animate().fadeIn(
+                                  delay: 280.ms,
                                   duration: StadiaMotion.slow,
-                                )
-                                .slideY(
-                                  begin: 0.06,
-                                  end: 0,
-                                  delay: 120.ms,
-                                  duration: StadiaMotion.slow,
-                                  curve: StadiaMotion.emphasized,
                                 ),
-                            const SizedBox(height: StadiaSpace.lg),
-                            _GatesNote(ticket: ticket).animate().fadeIn(
-                              delay: 280.ms,
-                              duration: StadiaMotion.slow,
+                                const SizedBox(height: StadiaSpace.md),
+                                Text(
+                                  l10n.paidRef(
+                                    f.price(ticket.total),
+                                    ticket.paymentReference,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: StadiaText.caption,
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: StadiaSpace.md),
-                            Text(
-                              l10n.paidRef(
-                                f.price(ticket.total),
-                                ticket.paymentReference,
-                              ),
-                              textAlign: TextAlign.center,
-                              style: StadiaText.caption,
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            StadiaSpace.gutter,
+                            StadiaSpace.sm,
+                            StadiaSpace.gutter,
+                            StadiaSpace.md,
+                          ),
+                          child: StadiaButton(
+                            label: l10n.backToMap,
+                            leading: StadiaGlyph.pin,
+                            onPressed: home,
+                          ),
+                        ),
+                      ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        StadiaSpace.gutter,
-                        StadiaSpace.sm,
-                        StadiaSpace.gutter,
-                        StadiaSpace.md,
-                      ),
-                      child: StadiaButton(
-                        label: l10n.backToMap,
-                        leading: StadiaGlyph.pin,
-                        onPressed: home,
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+          ),
         ),
       ),
     );

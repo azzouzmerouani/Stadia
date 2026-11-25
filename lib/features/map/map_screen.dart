@@ -11,8 +11,11 @@ import '../../data/models/match.dart';
 import '../../data/models/stadium.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
+import '../../ui/buttons.dart';
 import '../../ui/format.dart';
+import '../../ui/icons.dart';
 import '../../ui/stadia_loader.dart';
+import '../../ui/stage_frame.dart';
 import '../../ui/tokens.dart';
 import '../matches/upcoming_matches_card.dart';
 import 'widgets/gate_markers.dart';
@@ -110,8 +113,10 @@ class _StadiumMapState extends State<_StadiumMap>
   LatLng get _stadiumPoint =>
       LatLng(widget.stadium.location.lat, widget.stadium.location.lng);
 
-  /// Keeps the stadium visible above the bottom matches card.
+  /// Keeps the stadium visible above the bottom matches card (phone
+  /// layout); in a wide window nothing covers the map.
   EdgeInsets _focusPadding(BuildContext context) {
+    if (StadiaLayout.isWide(context)) return const EdgeInsets.all(56);
     final media = MediaQuery.of(context);
     return EdgeInsets.only(
       top: media.padding.top + 90,
@@ -150,47 +155,47 @@ class _StadiumMapState extends State<_StadiumMap>
   @override
   Widget build(BuildContext context) {
     final s = widget.stadium;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Positioned.fill(
-          child: FlutterMap(
-            mapController: _map,
-            options: MapOptions(
-              initialCameraFit: _focusFit(context),
-              minZoom: 5,
-              maxZoom: 18.5,
-              backgroundColor: StadiaColors.page,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'dz.stadia.app',
-                tileBuilder: purpleTileBuilder,
-              ),
-              GateMarkersLayer(gates: s.gates),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _stadiumPoint,
-                    width: StadiumMarker.size.width,
-                    height: StadiumMarker.size.height,
-                    alignment: Alignment.topCenter,
-                    child: StadiumMarker(
-                      name: s.name,
-                      caption:
-                          '${context.l10n.seatCount(s.capacity, StadiaFormat.of(context).count(s.capacity))} · ${s.city}',
-                      onTap: _recenter,
-                    ),
-                  ),
-                ],
+    final wide = StadiaLayout.isWide(context);
+    return StageFrame(
+      wide: wide,
+      stage: FlutterMap(
+        mapController: _map,
+        options: MapOptions(
+          initialCameraFit: _focusFit(context),
+          minZoom: 5,
+          maxZoom: 18.5,
+          backgroundColor: StadiaColors.page,
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+          ),
+        ),
+        children: [
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'dz.stadia.app',
+            tileBuilder: purpleTileBuilder,
+          ),
+          GateMarkersLayer(gates: s.gates),
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: _stadiumPoint,
+                width: StadiumMarker.size.width,
+                height: StadiumMarker.size.height,
+                alignment: Alignment.topCenter,
+                child: StadiumMarker(
+                  name: s.name,
+                  caption:
+                      '${context.l10n.seatCount(s.capacity, StadiaFormat.of(context).count(s.capacity))} · ${s.city}',
+                  onTap: _recenter,
+                ),
               ),
             ],
           ),
-        ),
+        ],
+      ),
+      // Phone: header and matches carousel float over the map.
+      overlay: [
         Positioned(
           top: 0,
           left: 0,
@@ -225,12 +230,37 @@ class _StadiumMapState extends State<_StadiumMap>
                 ),
                 child: OsmAttribution(),
               ),
-              const UpcomingMatchesCard()
+              const CardWidth(child: UpcomingMatchesCard())
                   .animate()
                   .fadeIn(delay: 120.ms, duration: 450.ms)
                   .moveY(begin: 40, curve: StadiaMotion.emphasized),
             ],
           ),
+        ),
+      ],
+      // Wide: top bar, the matches in the side panel, the map the rest.
+      topBar: MapTopBar(
+        stadium: s.name,
+        city: s.city,
+        team: widget.team,
+        onChangeStadium: widget.onChangeStadium,
+        onChangeTeam: widget.onChangeTeam,
+      ),
+      sidebar: const WideSidebar(child: UpcomingMatchesList()),
+      overStage: [
+        PositionedDirectional(
+          top: StadiaSpace.lg,
+          end: StadiaSpace.lg,
+          child: GlassIconButton(
+            glyph: StadiaGlyph.locate,
+            onPressed: _recenter,
+            semanticLabel: context.l10n.backToStadium,
+          ),
+        ),
+        const PositionedDirectional(
+          end: StadiaSpace.md,
+          bottom: StadiaSpace.sm,
+          child: OsmAttribution(),
         ),
       ],
     );

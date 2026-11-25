@@ -21,12 +21,21 @@ enum _Stage { seat, checkout, taken }
 /// stays live, with the camera sitting in the chosen seat. Seat details
 /// (block/row/seat/gate/price, VIP) and, on "Buy ticket", the checkout.
 class SeatPanel extends ConsumerStatefulWidget {
-  const SeatPanel({super.key, required this.matchId, required this.onTicket});
+  const SeatPanel({
+    super.key,
+    required this.matchId,
+    required this.onTicket,
+    this.maxHeight,
+  });
 
   final String matchId;
 
   /// A ticket was issued: the screen moves on to it.
   final ValueChanged<String> onTicket;
+
+  /// Tallest the panel grows before it scrolls. Default: 64 % of the
+  /// screen, leaving the view from the seat above it (phone layout).
+  final double? maxHeight;
 
   @override
   ConsumerState<SeatPanel> createState() => SeatPanelState();
@@ -155,7 +164,7 @@ class SeatPanelState extends ConsumerState<SeatPanel> {
 
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.64,
+        maxHeight: widget.maxHeight ?? MediaQuery.sizeOf(context).height * 0.64,
       ),
       child: GlassSurface(
         blur: 18,

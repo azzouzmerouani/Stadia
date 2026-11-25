@@ -87,8 +87,16 @@ python3 -m http.server 8790 --directory build/web
 ```
 
 Served from a sub-path, build with `--base-href /stadia/`. The app uses hash
-URLs (`/#/map`), so the host needs no rewrite rules. In a wide window it runs
-in a phone-width column; at phone width it fills the screen, as the app does.
+URLs (`/#/map`), so the host needs no rewrite rules.
+
+The app fills the browser window. From 900 px wide it is laid out like a
+desktop map app: a bar across the top, a side panel on the right (the
+start side in Arabic) and the map or the 3D stadium filling the rest. On
+the map the side panel lists the stadium's matches. In the seat picker it
+holds the selection, then the seat and checkout panel; the booking steps
+sit in the top bar. Narrower windows get the phone layout: the map or 3D
+full screen under floating cards. The 3D keeps its camera and selection
+when the window is resized across 900 px.
 
 ### Debugging the 3D view
 
@@ -119,7 +127,8 @@ The tests cover:
 - the checkout service (charge, VIP, declined, cancelled, seat taken before
   paying);
 - the loopback asset server, the intro screen and the map screen;
-- the phone-width column for wide browser windows;
+- the wide layout (top bar, side panel, map or 3D filling the rest) and
+  the 3D keeping its state across the breakpoint;
 - the mock repository.
 
 ## Regenerating the 3D model
@@ -241,7 +250,7 @@ lib/
   ui/             design system: FPL-style tokens, Cairo text styles, glass
                   surface, pill buttons, hand-drawn glyphs (no icon packs),
                   loaders, team crests, ar_DZ / en number and date formats,
-                  phone-width column for wide browser windows
+                  wide-window layout (StageFrame: top bar, side panel, stage)
   data/
     models/       Stadium, Stand, Block, SeatRef, FootballMatch, Ticket, ...
     repositories/ StadiumRepository (interface) + LocalStadiumRepository (JSON)
@@ -255,7 +264,7 @@ lib/
     stadium3d/    loopback asset server + WebView (iOS/Android), iframe
                   (web), scene controller, protocol, intro screen
     map/          flutter_map + OSM, gates, stadium marker, stadium switcher
-    matches/      upcoming matches card
+    matches/      upcoming matches: carousel (phone), list (side panel)
     seat_picker/  BookingMachine (pure), BookingController, picker screen,
                   seat panel (buy step, in the picker's tree)
     ticket/       Checkout service, ticket screen, notched ticket card

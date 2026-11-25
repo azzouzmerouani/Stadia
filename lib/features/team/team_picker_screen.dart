@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +17,7 @@ import '../../ui/glass.dart';
 import '../../ui/icons.dart';
 import '../../ui/spring_press.dart';
 import '../../ui/stadia_loader.dart';
+import '../../ui/stage_frame.dart';
 import '../../ui/team_badge.dart';
 import '../../ui/tokens.dart';
 import '../../ui/wordmark.dart';
@@ -67,6 +70,11 @@ class _TeamPickerScreenState extends ConsumerState<TeamPickerScreen> {
     final stadium = stadiums.where((s) => s.id == plan?.stadiumId).firstOrNull;
     final glow = plan == null ? null : _glowColour(plan.team);
     final l10n = context.l10n;
+    // Wide windows: the grid stops growing and centres.
+    final inset = math.max(
+      0.0,
+      (MediaQuery.sizeOf(context).width - _maxContentWidth) / 2,
+    );
 
     return Scaffold(
       backgroundColor: StadiaColors.page,
@@ -96,23 +104,24 @@ class _TeamPickerScreenState extends ConsumerState<TeamPickerScreen> {
               AsyncData(:final value) => CustomScrollView(
                 slivers: [
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      StadiaSpace.gutter + 4,
+                    padding: EdgeInsets.fromLTRB(
+                      inset + StadiaSpace.gutter + 4,
                       StadiaSpace.lg,
-                      StadiaSpace.gutter + 4,
+                      inset + StadiaSpace.gutter + 4,
                       StadiaSpace.xl,
                     ),
                     sliver: SliverToBoxAdapter(child: _Header(l10n: l10n)),
                   ),
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: StadiaSpace.gutter,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: inset + StadiaSpace.gutter,
                     ),
                     sliver: SliverGrid.builder(
                       itemCount: value.length,
+                      // Two columns on a phone, up to four on a desktop.
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 240,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
                             childAspectRatio: 1.08,
@@ -147,17 +156,21 @@ class _TeamPickerScreenState extends ConsumerState<TeamPickerScreen> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: _GoPanel(
-              plan: plan,
-              stadium: stadium,
-              going: _going,
-              onGo: plan == null ? null : () => _go(plan),
+            child: CardWidth(
+              child: _GoPanel(
+                plan: plan,
+                stadium: stadium,
+                going: _going,
+                onGo: plan == null ? null : () => _go(plan),
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
+  static const _maxContentWidth = 960.0;
 
   /// A colour that shows on purple: the club's primary, or its secondary
   /// when the primary is near-black (ES Sétif).

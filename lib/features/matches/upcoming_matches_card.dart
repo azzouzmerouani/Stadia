@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
 import '../../data/favourite_team.dart';
 import '../../data/models/match.dart';
+import '../../data/models/stadium.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
 import '../../ui/glass.dart';
@@ -58,17 +60,9 @@ class _UpcomingMatchesCardState extends ConsumerState<UpcomingMatchesCard> {
   Widget build(BuildContext context) {
     final stadium = ref.watch(stadiumProvider).value;
     final favourite = ref.watch(favouriteTeamProvider);
-    // This stadium's matches only.
     final matches = ref
         .watch(upcomingMatchesProvider)
-        .whenData(
-          (all) => stadium == null
-              ? all
-              : [
-                  for (final m in all)
-                    if (m.stadiumId == stadium.id) m,
-                ],
-        );
+        .whenData((all) => _atStadium(all, stadium));
     if (matches.value case final list? when stadium != null) {
       _startAtFavourite(list, favourite);
     }
@@ -147,6 +141,100 @@ class _UpcomingMatchesCardState extends ConsumerState<UpcomingMatchesCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// This stadium's matches only.
+List<FootballMatch> _atStadium(List<FootballMatch> all, Stadium? stadium) =>
+    stadium == null
+    ? all
+    : [
+        for (final m in all)
+          if (m.stadiumId == stadium.id) m,
+      ];
+
+/// Wide layout: the side panel's list of the stadium's upcoming matches,
+/// one card under the other.
+class UpcomingMatchesList extends ConsumerWidget {
+  const UpcomingMatchesList({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stadium = ref.watch(stadiumProvider).value;
+    final favourite = ref.watch(favouriteTeamProvider);
+    final matches = ref
+        .watch(upcomingMatchesProvider)
+        .whenData((all) => _atStadium(all, stadium));
+    final l10n = context.l10n;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.upcomingMatches, style: StadiaText.title),
+                    if (stadium != null)
+                      Text(
+                        '${stadium.name} · ${stadium.city}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: StadiaText.caption,
+                      ),
+                  ],
+                ),
+              ),
+              if (matches.value case final list? when list.isNotEmpty)
+                GlassChip(label: '${list.length}'),
+            ],
+          ),
+        ),
+        Expanded(
+          child: switch (matches) {
+            AsyncData(:final value) when stadium != null =>
+              value.isEmpty
+                  ? Center(child: Text(l10n.noMatchYet, style: StadiaText.body))
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(15, 0, 15, 20),
+                      itemCount: value.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, i) =>
+                          SizedBox(
+                                height: MatchCard.height,
+                                child: MatchCard(
+                                  match: value[i],
+                                  stadium: stadium,
+                                  featured:
+                                      favourite != null &&
+                                      value[i].involves(favourite),
+                                  onChooseSeats: () =>
+                                      context.push(Routes.seats(value[i].id)),
+                                ),
+                              )
+                              .animate()
+                              .fadeIn(
+                                delay: (60 * i).ms,
+                                duration: StadiaMotion.slow,
+                              )
+                              .moveY(
+                                begin: 16,
+                                delay: (60 * i).ms,
+                                curve: StadiaMotion.emphasized,
+                              ),
+                    ),
+            AsyncError(:final error) => Center(
+              child: Text('$error', style: StadiaText.body),
+            ),
+            _ => const Center(child: TrackLoader(width: 72)),
+          },
+        ),
+      ],
     );
   }
 }
